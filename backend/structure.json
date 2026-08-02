@@ -1,0 +1,17 @@
+{
+  "root": {
+    "backend": {
+      "app": {
+        "__init__.py": "from pydantic_settings import BaseSettings, SettingsConfigDict\n\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(env_file=\".env\", extra=\"ignore\")\n\n    APP_NAME: str = \"Smart Delivery AI API\"\n    APP_VERSION: str = \"0.1.0\"\n    DEBUG: bool = False\n    HOST: str = \"0.0.0.0\"\n    PORT: int = 8000\n    CORS_ORIGINS: list[str] = [\"http://localhost:3000\", \"http://localhost:8080\"]\n\n\nsettings = Settings()\n",
+        "main.py": "from fastapi import FastAPI\nfrom fastapi.middleware.cors import CORSMiddleware\n\nfrom app.core.config import settings\n\n\ndef create_app() -> FastAPI:\n    app = FastAPI(\n        title=settings.APP_NAME,\n        version=settings.APP_VERSION,\n        debug=settings.DEBUG,\n    )\n\n    app.add_middleware(\n        CORSMiddleware,\n        allow_origins=settings.CORS_ORIGINS,\n        allow_credentials=True,\n        allow_methods=[\"*\"],\n        allow_headers=[\"*\"],\n    )\n\n    @app.get(\"/\")\n    async def root():\n        return {\"message\": \"Smart Delivery AI API\"}\n\n    return app\n\n\napp = create_app()\n",
+        "core": {
+          "__init__.py": "",
+          "config.py": "from pydantic_settings import BaseSettings, SettingsConfigDict\n\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(env_file=\".env\", extra=\"ignore\")\n\n    APP_NAME: str = \"Smart Delivery AI API\"\n    APP_VERSION: str = \"0.1.0\"\n    DEBUG: bool = False\n    HOST: str = \"0.0.0.0\"\n    PORT: int = 8000\n    CORS_ORIGINS: list[str] = [\"http://localhost:3000\", \"http://localhost:8080\"]\n\n\nsettings = Settings()"
+        }
+      },
+      "requirements.txt": "fastapi==0.115.6\nuvicorn==0.34.0\npydantic-settings==2.7.1\npython-dotenv==1.0.1\nsqlalchemy==2.0.36\nalembic==1.14.0\npsycopg2-binary==2.9.10\nredis==5.2.1\nhttpx==0.28.1\n",
+      "Dockerfile": "FROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt .\n\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY . .\n\nEXPOSE 8000\n\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n",
+      ".env.example": "APP_NAME=\"Smart Delivery AI API\"\nAPP_VERSION=\"0.1.0\"\nDEBUG=True\nHOST=\"0.0.0.0\"\nPORT=8000\nCORS_ORIGINS=[\"http://localhost:3000\",\"http://localhost:8080\"]\n"
+    }
+  }
+}

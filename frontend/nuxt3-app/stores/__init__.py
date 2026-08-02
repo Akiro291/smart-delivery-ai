@@ -1,0 +1,1 @@
+# Nuxt store package
