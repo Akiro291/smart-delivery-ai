@@ -2,7 +2,7 @@
 User models for the application.
 """
 
-from sqlalchemy import Column, Integer, String, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Enum as SQLEnum, Text, ForeignKey, DateTime, func
 from app.db.base import Base, IDMixin, TimestampMixin
 from enum import Enum
 
@@ -11,8 +11,14 @@ class UserRole(str, Enum):
     """User roles enumeration."""
     CUSTOMER = "CUSTOMER"
     COURIER = "COURIER"
-    MANAGER = "MANAGER"
     ADMIN = "ADMIN"
+
+
+class RoleRequestStatus(str, Enum):
+    """Role request statuses."""
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 class User(Base, IDMixin, TimestampMixin):
@@ -31,3 +37,16 @@ class User(Base, IDMixin, TimestampMixin):
     )
     is_active = Column(Integer, default=1)
     is_superuser = Column(Integer, default=0)
+
+
+class RoleRequest(Base, IDMixin, TimestampMixin):
+    """Role request model for users requesting role changes."""
+    
+    __tablename__ = "role_requests"
+    
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)
+    requested_role = Column(SQLEnum(UserRole), nullable=False)
+    status = Column(SQLEnum(RoleRequestStatus), default=RoleRequestStatus.PENDING, nullable=False)
+    reason = Column(Text, nullable=True)
+    reviewed_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)

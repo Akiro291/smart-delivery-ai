@@ -3,6 +3,7 @@
     <div class="max-w-md w-full space-y-8 p-8 bg-white rounded shadow">
       <div>
         <h2 class="text-center text-3xl font-bold">Вход</h2>
+        <p class="text-center text-gray-500 text-sm mt-2">Smart Delivery AI</p>
       </div>
       <form @submit.prevent="handleLogin" class="space-y-6">
         <div>
@@ -29,36 +30,46 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'guest' })
 
+const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
 const error = ref('')
 
 async function handleLogin() {
-  loading.value = true
   error.value = ''
   try {
-    const response = await useApi().postForm('/auth/login', new URLSearchParams({
-      username: email.value,
-      password: password.value,
-    }))
-    localStorage.setItem('token', response.access_token)
-    navigateTo('/dashboard')
-  } catch (e: any) {
-    if (e.response) {
-      const data = e.response._data || e.response.data
-      if (data?.detail === 'Incorrect email or password') {
-        error.value = 'Неверный email или пароль'
-      } else if (data?.detail === 'Inactive user') {
-        error.value = 'Аккаунт заблокирован'
-      } else {
-        error.value = data?.detail || `HTTP ${e.response.status}`
-      }
+    await authStore.login(email.value, password.value)
+    
+    const role = authStore.user?.role
+    if (role === 'ADMIN') {
+      return navigateTo('/admin')
+    } else if (role === 'COURIER') {
+      return navigateTo('/courier')
     } else {
-      error.value = e.message || 'Нет подключения к серверу'
+      return navigateTo('/customer')
     }
-  } finally {
-    loading.value = false
+  } catch (e: any) {
+    console.error('Login error:', e)
+    let errorMessage = ''
+    
+    if (e.response?.data?.detail) {
+      const detail = e.response.data.detail
+      if (detail === 'Incorrect email or password') {
+        errorMessage = 'Неверный email или пароль'
+      } else if (detail === 'Inactive user') {
+        errorMessage = 'Аккаунт заблокирован'
+      } else {
+        errorMessage = detail
+      }
+    } else if (e.statusCode || e.status) {
+      errorMessage = `Ошибка сервера (${e.statusCode || e.status}). Проверьте, запущен ли backend.`
+    } else if (e.message?.includes('fetch') || e.message?.includes('network')) {
+      errorMessage = 'Не удалось подключиться к серверу. Убедитесь, что backend запущен на порту 8000.'
+    } else {
+      errorMessage = 'Произошла ошибка при входе'
+    }
+    
+    error.value = errorMessage
   }
 }
 </script>

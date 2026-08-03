@@ -5,10 +5,34 @@ Security utilities for authentication and authorization.
 from datetime import datetime, timedelta
 from typing import Any, Union
 from jose import jwt
-from passlib.context import CryptContext
+import bcrypt
+import hashlib
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    """
+    Get password hash using bcrypt.
+    Handles passwords longer than 72 bytes by SHA256 pre-hashing.
+    """
+    password_bytes = password.encode('utf-8')
+    
+    # If password is longer than 72 bytes, hash it first with SHA256
+    if len(password_bytes) > 72:
+        password_bytes = hashlib.sha256(password_bytes).digest()
+    
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode('utf-8')
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against hash."""
+    plain_bytes = plain_password.encode('utf-8')
+    
+    # If plain password is longer than 72 bytes, hash it first with SHA256
+    if len(plain_bytes) > 72:
+        plain_bytes = hashlib.sha256(plain_bytes).digest()
+    
+    return bcrypt.checkpw(plain_bytes, hashed_password.encode('utf-8') if isinstance(hashed_password, str) else hashed_password)
 
 
 def create_access_token(
@@ -43,16 +67,6 @@ def create_refresh_token(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """Get password hash."""
-    return pwd_context.hash(password)
 
 
 def verify_token(token: str) -> dict:

@@ -22,7 +22,7 @@ from app.repositories.user_repo import (
     get_user_by_email,
     get_user_by_id,
 )
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 from app.schemas.user import UserCreate, User
 from app.api.v1.dependencies import get_current_user
 
@@ -51,6 +51,8 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
+    # Force role to CUSTOMER for all new registrations
+    user_data.role = UserRole.CUSTOMER
     new_user = await create_user(db, user_data)
     if not new_user:
         raise HTTPException(

@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ collapsed: boolean }>()
+const props = defineProps<{ collapsed: boolean }>()
 const emit = defineEmits(['update:collapsed'])
 const route = useRoute()
 const mobileOpen = ref(false)
@@ -61,7 +61,7 @@ const mobileCollapsed = ref(false)
 
 const emitCollapse = (val: boolean) => emit('update:collapsed', val)
 
-const collapse = () => emitCollapse(!collapsed.value)
+const collapse = () => emitCollapse(!props.collapsed)
 const openMobile = () => { mobileOpen.value = true; mobileCollapsed.value = false }
 const closeMobile = () => { mobileOpen.value = false }
 

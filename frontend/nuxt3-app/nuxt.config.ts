@@ -9,7 +9,7 @@ export default defineNuxtConfig({
       link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }]
     }
   },
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
   devtools: { enabled: true },
   runtimeConfig: {
     public: {
@@ -20,5 +20,11 @@ export default defineNuxtConfig({
   routeRules: {
     '/auth/**': { ssr: false },
     '/dashboard/**': { ssr: false },
+    '/admin/**': { ssr: false },
+  },
+  nitro: {
+    routeRules: {
+      '/uploads/**': { cors: true },
+    }
   },
 })

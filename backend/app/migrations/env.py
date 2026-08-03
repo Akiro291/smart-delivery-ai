@@ -16,7 +16,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from app.core.config import settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
-from app.db.models import *  # noqa: E402, F401, F403
+
+# Import models directly to avoid circular imports
+from app.db.models.user import User, UserRole, RoleRequest, RoleRequestStatus  # noqa: E402
+from app.db.models.order import Order, OrderStatus  # noqa: E402
+from app.db.models.order_history import OrderHistory  # noqa: E402
+from app.db.models.delivery_tracking import DeliveryTracking  # noqa: E402
+from app.db.models.notification import Notification, NotificationType, NotificationStatus  # noqa: E402
+from app.db.models.product import Product  # noqa: E402
+from app.db.models.order_item import OrderItem, CartItem  # noqa: E402
 
 # this is the Alembic Config object
 config = context.config
@@ -40,6 +48,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -48,7 +57,11 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection) -> None:
     """Run migrations with connection."""
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        render_as_batch=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
