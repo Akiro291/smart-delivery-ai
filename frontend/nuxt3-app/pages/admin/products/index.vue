@@ -14,9 +14,17 @@
         <div v-else class="h-32 bg-gray-200 rounded mb-4 flex items-center justify-center text-4xl">📦</div>
         <h3 class="font-semibold">{{ item.name }}</h3>
         <p class="text-sm text-gray-500">{{ item.category || 'Без категории' }}</p>
-        <div class="flex justify-between items-center mt-3">
-          <span class="font-bold">{{ formatPrice(item.price) }}</span>
-          <span class="text-sm text-gray-500">В наличии: {{ item.stock_quantity }}</span>
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold">{{ formatPrice(item.price) }}</span>
+            <span :class="item.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'" class="text-sm font-medium">
+              {{ item.stock_quantity > 0 ? 'Да' : 'Нет' }}
+            </span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-500">Доступен</span>
+            <span class="text-sm text-gray-500">В наличии: {{ item.stock_quantity }}</span>
+          </div>
         </div>
       </NuxtLink>
     </div>

@@ -32,7 +32,7 @@ from pathlib import Path
 router = APIRouter(prefix="/products", tags=["products"])
 
 # Path to uploads directory (project root)
-BASE_DIR = Path(__file__).parent.parent.parent.parent.parent
+BASE_DIR = Path(__file__).parent.parent.parent.parent.parent.parent
 UPLOADS_DIR = BASE_DIR / 'uploads'
 
 

@@ -1,1 +1,0 @@
-# Next.js home page test

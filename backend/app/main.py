@@ -14,11 +14,11 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 # Path to uploads directory (project root)
-UPLOADS_DIR = Path(__file__).parent.parent.parent.parent / 'uploads'
+UPLOADS_DIR = settings.BASE_DIR / 'uploads'
 
 app = FastAPI(
     title="Smart Delivery AI Platform",
-    description="AI-powered delivery management platform",
+    description="SaaS-платформа управления доставкой с модульной архитектурой",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -43,15 +43,13 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Startup event handler."""
-    import os
     logger.info("Starting Smart Delivery AI Platform")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
     
     # Create uploads directory
-    uploads_dir = os.path.join(UPLOADS_DIR, 'products')
-    os.makedirs(uploads_dir, exist_ok=True)
-    logger.info(f"Uploads directory: {uploads_dir}")
+    (UPLOADS_DIR / 'products').mkdir(parents=True, exist_ok=True)
+    logger.info(f"Uploads directory: {UPLOADS_DIR}")
 
 
 @app.on_event("shutdown")
@@ -83,6 +81,9 @@ app.include_router(notifications.router, prefix="/api/v1", tags=["notifications"
 app.include_router(ai.router, prefix="/api/v1", tags=["ai"])
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(products.router, prefix="/api/v1", tags=["products"])
+
+# Create uploads directory before mounting static files
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Serve static files from uploads
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")

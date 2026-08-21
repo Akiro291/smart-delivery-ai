@@ -9,6 +9,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.user import User, RoleRequest, RoleRequestStatus, UserRole
+from app.db.models.notification import Notification, NotificationType, NotificationStatus
 from app.schemas.user import UserCreate
 from app.core.security import get_password_hash
 
@@ -178,3 +179,26 @@ async def update_role_request(db: AsyncSession, request: RoleRequest, status: st
     await db.commit()
     await db.refresh(request)
     return request
+
+
+async def create_role_notification(db: AsyncSession, user_id: int, title: str, message: str) -> Notification:
+    """Create a notification for role request."""
+    notification = Notification(
+        user_id=user_id,
+        type=NotificationType.TELEGRAM,
+        status=NotificationStatus.PENDING,
+        title=title,
+        message=message,
+    )
+    db.add(notification)
+    await db.commit()
+    await db.refresh(notification)
+    return notification
+
+
+async def get_admin_users(db: AsyncSession) -> List[User]:
+    """Get all admin users."""
+    result = await db.execute(
+        select(User).where(User.role == UserRole.ADMIN)
+    )
+    return list(result.scalars().all())

@@ -22,6 +22,8 @@ from app.repositories.user_repo import (
     get_role_requests,
     update_role_request,
     get_role_request_by_user,
+    get_admin_users,
+    create_role_notification,
 )
 from app.db.models.user import User, UserRole, RoleRequestStatus
 from app.schemas.user import (
@@ -190,6 +192,17 @@ async def request_role_change(
     role_request = await create_role_request(
         db, current_user.id, request_data.requested_role.name, request_data.reason
     )
+    
+    # Send notifications to all admins
+    admins = await get_admin_users(db)
+    for admin in admins:
+        user_name = current_user.full_name or current_user.email
+        await create_role_notification(
+            db, admin.id,
+            title="Заявка на роль курьера",
+            message=f"Пользователь {user_name} запросил роль курьера. Причина: {request_data.reason or 'Не указана'}",
+        )
+    
     return role_request
 
 
@@ -249,6 +262,7 @@ async def approve_role_request(
         )
     
     user.role = role_request.requested_role
+    await db.commit()
     role_request = await update_role_request(
         db, role_request, "APPROVED", current_user.id, reason
     )

@@ -9,7 +9,6 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.db.models.order import OrderStatus
-from app.db.models.user import UserRole
 
 
 class OrderBase(BaseModel):
@@ -37,5 +36,18 @@ class Order(OrderBase):
     customer_id: int
     courier_id: Optional[int] = None
     status: OrderStatus = OrderStatus.PENDING
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class OrderHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    order_id: int
+    from_status: Optional[str] = None
+    to_status: str
+    changed_by: Optional[int] = None
+    notes: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

@@ -54,7 +54,6 @@ const menuItems: MenuItem[] = [
   { label: 'Панель', to: '/admin', icon: '\uD83D\uDCCA' },
   { label: 'Пользователи', to: '/admin/users', icon: '\uD83D\uDC65' },
   { label: 'Заказы', to: '/admin/orders', icon: '\uD83D\uDCCB' },
-  { label: 'Управление ролями', to: '/admin/roles', icon: '\uD83D\uDD12' },
   { label: 'Товары', to: '/admin/products', icon: '\uD83D\uDED2' },
   { label: 'Курьеры', to: '/admin/couriers', icon: '\uD83D\uDE9A' },
   { label: 'Настройки', to: '/admin/settings', icon: '\u2699' },

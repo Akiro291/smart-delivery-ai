@@ -2,6 +2,7 @@
 Application configuration using pydantic v2.
 """
 
+from pathlib import Path
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,6 +17,8 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    BASE_DIR: Path = Path(__file__).parent.parent.parent
 
     # PostgreSQL
     POSTGRES_HOST: str = "localhost"

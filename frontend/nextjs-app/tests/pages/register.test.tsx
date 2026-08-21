@@ -1,1 +1,0 @@
-# Next.js user registration test

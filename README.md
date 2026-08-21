@@ -81,17 +81,16 @@ SaaS-платформа для управления сервисом доста�
 ┌─────────────────────────────────────────────────────┐
 │                   Nginx / Load Balancer              │
 └──────────────────┬──────────────────────────────────┘
-                   │
-    ┌──────────────┼──────────────┐
-    ▼              ▼              ▼
-┌───────┐    ┌────────┐    ┌──────────┐
-│  Nuxt │    │ Next.js│    │  Backend  │
-│  3    │    │  (React)│    │ FastAPI  │
-│Vue 3  │    │TypeScript│   │  :8000   │
-└───────┘    └────────┘    └────┬─────┘
-    Frontend                PostgreSQL :5432
-                               Redis    :6379
-                               Celery / RabbitMQ
+                    │
+         ┌──────────┼──────────┐
+         ▼          ▼          ▼
+┌──────────┐    ┌──────────┐    ┌────────┐
+│  Nuxt 3  │    │  Backend  │    │  Redis  │
+│  (Vue 3) │    │ FastAPI   │    │ :6379  │
+└──────────┘    │  :8000    │    └───┬────┘
+                └─────┬─────┘        │
+                      PostgreSQL     │
+                      Celery / RabbitMQ
 ```
 
 ### Слои приложения
@@ -129,10 +128,14 @@ Database Layer (SQLAlchemy + PostgreSQL)
 | Технология | Назначение |
 |-----------|-----------|
 | Nuxt 3 (Vue 3) | Основной frontend |
-| Next.js (React) | Альтернативный интерфейс |
 | TypeScript | Типизация |
 | Tailwind CSS | Стилизация |
 | Pinia | Управление состоянием |
+
+### Frontend (экспериментально)
+| Технология | Назначение |
+|-----------|-----------|
+| Next.js (React) | Альтернативный интерфейс (в разработке) |
 
 ### DevOps
 | Технология | Назначение |
@@ -211,15 +214,6 @@ npm run dev
 # http://localhost:3000
 ```
 
-#### Frontend — Next.js
-
-```bash
-cd frontend/nextjs-app
-npm install
-npm run dev
-# http://localhost:3001
-```
-
 ---
 
 ## Структура проекта
@@ -246,8 +240,7 @@ smart-delivery-ai/
 │   ├── requirements.txt          # Зависимости
 │   └── Dockerfile
 ├── frontend/
-│   ├── nuxt3-app/               # Nuxt 3 (Vue 3)
-│   └── nextjs-app/              # Next.js (React)
+│   └── nuxt3-app/               # Nuxt 3 (Vue 3)
 ├── docker-compose.yml           # Описание сервисов
 ├── .github/
 │   └── workflows/               # CI/CD GitHub Actions
@@ -318,7 +311,7 @@ isort app/ --check-only
 - [x] Docker-конфигурация
 - [x] GitHub Actions CI/CD
 - [x] Логирование
-- [x] Frontend-скелет (Nuxt 3 + Next.js)
+- [x] Frontend-скелет (Nuxt 3)
 
 ### 🚧 В разработке
 - [ ] Панель администратора
