@@ -45,11 +45,12 @@ interface User {
 }
 
 const authStore = useAuthStore()
+const apiBase = useRuntimeConfig().public.apiBase
 const couriers = ref<User[]>([])
 
 async function fetchCouriers() {
   try {
-    couriers.value = await $fetch('/api/v1/users/?role=COURIER&limit=100', {
+    couriers.value = await $fetch(`${apiBase}/users/?role=COURIER&limit=100`, {
       headers: { Authorization: `Bearer ${authStore.token}` },
     })
   } catch (e) {

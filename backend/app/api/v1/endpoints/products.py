@@ -4,46 +4,39 @@ Products endpoints - admin management and customer catalog.
 
 import os
 import uuid
-from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.dependencies import require_admin
+from app.core.config import settings
 from app.core.database import get_async_session
-from app.schemas.product import ProductCreate, ProductUpdate, Product
 from app.db.models.product import Product as ProductModel
 from app.repositories.product_repo import (
-    get_products,
-    get_product_by_id,
-    get_products_by_category,
     create_product,
-    update_product,
     delete_product,
+    get_product_by_id,
     get_product_count,
+    get_products,
+    get_products_by_category,
+    update_product,
 )
-from app.api.v1.dependencies import (
-    get_current_user,
-    require_admin,
-)
-from app.core.config import settings
-from pathlib import Path
+from app.schemas.product import Product, ProductCreate, ProductUpdate
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 # Path to uploads directory (project root)
-BASE_DIR = Path(__file__).parent.parent.parent.parent.parent.parent
-UPLOADS_DIR = BASE_DIR / 'uploads'
+UPLOADS_DIR = settings.BASE_DIR / "uploads"
 
 
 @router.get("/", response_model=list[Product])
 async def list_products(
     skip: int = Query(0, ge=0, description="Пропуск"),
     limit: int = Query(50, ge=1, le=200, description="Лимит"),
-    category: Optional[str] = Query(None, description="Фильтр по категории"),
+    category: str | None = Query(None, description="Фильтр по категории"),
     available_only: bool = Query(False, description="Только доступные"),
     db: AsyncSession = Depends(get_async_session),
-    current_user: object = Depends(get_current_user),
 ):
     """Получить каталог товаров."""
     products = await get_products(
@@ -59,7 +52,6 @@ async def list_products(
 @router.get("/categories")
 async def list_categories(
     db: AsyncSession = Depends(get_async_session),
-    current_user: object = Depends(get_current_user),
 ):
     """Получить список всех категорий товаров."""
     products = await get_products(db, limit=1000)
@@ -71,7 +63,6 @@ async def list_categories(
 async def get_product(
     product_id: int,
     db: AsyncSession = Depends(get_async_session),
-    current_user: object = Depends(get_current_user),
 ):
     """Получить карточку товара."""
     product = await get_product_by_id(db, product_id)
@@ -87,7 +78,6 @@ async def get_product(
 async def get_products_by_category_endpoint(
     category: str,
     db: AsyncSession = Depends(get_async_session),
-    current_user: object = Depends(get_current_user),
 ):
     """Получить товары по категории."""
     products = await get_products_by_category(db, category)
@@ -153,8 +143,6 @@ async def get_product_stats(
     """Статистика по товарам (только админ)."""
     total = await get_product_count(db)
     return {"total_products": total}
-
-
 @router.post("/{product_id}/image", response_model=Product)
 async def upload_product_image(
     product_id: int,
@@ -163,33 +151,48 @@ async def upload_product_image(
     admin: object = Depends(require_admin),
 ):
     """Загрузить изображение для товара (только админ)."""
-    if not file.content_type or not file.content_type.startswith('image/'):
+    ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Разрешены только изображения",
         )
-    
+
     product = await get_product_by_id(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Товар не найден",
         )
-    
+
+    # Validate extension (content-type header is easy to spoof)
+    file_extension = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+    if file_extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Недопустимый формат изображения",
+        )
+
     # Generate unique filename
-    file_extension = os.path.splitext(file.filename)[1] if file.filename else '.jpg'
     unique_filename = f"{uuid.uuid4().hex}{file_extension}"
-    
+
     # Save to uploads folder
-    uploads_dir = UPLOADS_DIR / 'products'
+    uploads_dir = UPLOADS_DIR / "products"
     uploads_dir.mkdir(parents=True, exist_ok=True)
     file_path = uploads_dir / unique_filename
-    
-    # Read file content and save
+
+    # Read file content (with size limit) and save
     contents = await file.read()
-    with open(file_path, 'wb') as f:
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Файл слишком большой (максимум 5 МБ)",
+        )
+    with open(file_path, "wb") as f:
         f.write(contents)
-    
+
     # Update product with image URL
     image_url = f"/uploads/products/{unique_filename}"
     result = await db.execute(select(ProductModel).where(ProductModel.id == product_id))
@@ -199,7 +202,7 @@ async def upload_product_image(
         await db.commit()
         await db.refresh(db_product)
         return Product.model_validate(db_product)
-    
+
     raise HTTPException(status_code=500, detail="Ошибка при сохранении изображения")
 
 
@@ -212,16 +215,16 @@ async def delete_product_image(
     """Удалить изображение товара (только админ)."""
     result = await db.execute(select(ProductModel).where(ProductModel.id == product_id))
     product = result.scalar_one_or_none()
-    
+
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Товар не найден",
         )
-    
+
     if product.image_url:
         # Try to delete file
-        file_path = UPLOADS_DIR / 'products' / os.path.basename(product.image_url)
+        file_path = UPLOADS_DIR / "products" / os.path.basename(product.image_url)
         if os.path.exists(file_path):
             os.remove(file_path)
         product.image_url = None

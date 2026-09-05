@@ -1,9 +1,9 @@
-﻿"""
+"""
 AI-related Celery tasks.
 """
 
-from app.tasks import celery_app
 from app.core.logging import get_logger
+from app.tasks import celery_app
 
 logger = get_logger(__name__)
 
@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 def analyze_sentiment(self, review_text: str) -> dict:
     """Analyze sentiment of a delivery review."""
     try:
-        logger.info(f"Analyzing sentiment for review")
+        logger.info("Analyzing sentiment for review")
         return {
             "sentiment": "positive",
             "score": 0.85,
@@ -32,7 +32,7 @@ def predict_delivery_time(
 ) -> dict:
     """Predict delivery time using ML model."""
     try:
-        logger.info(f"Predicting delivery time")
+        logger.info("Predicting delivery time")
         return {
             "estimated_minutes": 25,
             "confidence": 0.92,
@@ -51,7 +51,7 @@ def predict_delivery_time(
 def generate_rag_response(query: str, context: list) -> str:
     """Generate response using RAG (Retrieval Augmented Generation)."""
     try:
-        logger.info(f"Generating RAG response for query")
+        logger.info("Generating RAG response for query")
         return f"Response based on query: {query}"
     except Exception as exc:
         logger.error(f"Error generating RAG response: {exc}")

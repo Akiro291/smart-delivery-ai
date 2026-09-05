@@ -3,7 +3,6 @@ Application configuration using pydantic v2.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,14 +27,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
 
     # Database URL
-    DATABASE_URL: str = (
-        "postgresql+asyncpg://postgres:postgres@db:5432/smart_delivery"
-    )
+    DATABASE_URL: str | None = None
 
     # Redis
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-    REDIS_PASSWORD: Optional[str] = None
+    REDIS_PASSWORD: str | None = None
 
     # RabbitMQ
     RABBITMQ_HOST: str = "localhost"
@@ -43,29 +40,32 @@ class Settings(BaseSettings):
     RABBITMQ_USER: str = "guest"
     RABBITMQ_PASSWORD: str = "guest"
 
-    # JWT
-    SECRET_KEY: str = "your-super-secret-key-change-in-production"
+    # JWT — обязательные поля, без дефолтных значений
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # OpenAI
-    OPENAI_API_KEY: str = "your-openai-api-key-here"
+    # OpenAI — опционально, пока не нужен
+    OPENAI_API_KEY: str | None = None
 
-    # Telegram
-    TELEGRAM_BOT_TOKEN: str = "your-telegram-bot-token-here"
+    # Telegram — опционально
+    TELEGRAM_BOT_TOKEN: str | None = None
 
-    # SMTP
+    # SMTP — опционально
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = "your-email@gmail.com"
-    SMTP_PASSWORD: str = "your-app-password"
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
     SMTP_FROM: str = "noreply@smartdelivery.ai"
 
-    # Application
+    # Application — по умолчанию development-режим для безопасности
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
+
+    # CORS origins — список разрешённых origin
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
 
     # Docker
     DOCKER_ENV: bool = False
@@ -77,10 +77,21 @@ class Settings(BaseSettings):
     @property
     def database_url_async(self) -> str:
         """Get async database URL."""
-        url = str(self.DATABASE_URL)
-        if url.startswith("postgresql://") and "+asyncpg" not in url:
-            return url.replace("postgresql://", "postgresql+asyncpg://")
-        return url
+        if self.DATABASE_URL:
+            url = str(self.DATABASE_URL)
+            if url.startswith("postgresql://") and "+asyncpg" not in url:
+                return url.replace("postgresql://", "postgresql+asyncpg://")
+            return url
+        # Build URL from components
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS_ORIGINS string into list."""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
 settings = Settings()

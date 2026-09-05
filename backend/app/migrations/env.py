@@ -2,14 +2,13 @@
 Alembic migration configuration for async SQLAlchemy.
 """
 
-import sys
 import os
+import sys
 from logging.config import fileConfig
 
-from sqlalchemy import pool, event
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from alembic import context
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Add backend folder to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -18,13 +17,6 @@ from app.core.config import settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
 
 # Import models directly to avoid circular imports
-from app.db.models.user import User, UserRole, RoleRequest, RoleRequestStatus  # noqa: E402
-from app.db.models.order import Order, OrderStatus  # noqa: E402
-from app.db.models.order_history import OrderHistory  # noqa: E402
-from app.db.models.delivery_tracking import DeliveryTracking  # noqa: E402
-from app.db.models.notification import Notification, NotificationType, NotificationStatus  # noqa: E402
-from app.db.models.product import Product  # noqa: E402
-from app.db.models.order_item import OrderItem, CartItem  # noqa: E402
 
 # this is the Alembic Config object
 config = context.config
@@ -58,7 +50,7 @@ def run_migrations_offline() -> None:
 def do_run_migrations(connection) -> None:
     """Run migrations with connection."""
     context.configure(
-        connection=connection, 
+        connection=connection,
         target_metadata=target_metadata,
         render_as_batch=True,
     )

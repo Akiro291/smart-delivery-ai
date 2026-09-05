@@ -1,9 +1,9 @@
-﻿"""
+"""
 Order-related Celery tasks.
 """
 
-from app.tasks import celery_app
 from app.core.logging import get_logger
+from app.tasks import celery_app
 
 logger = get_logger(__name__)
 
@@ -34,8 +34,9 @@ def assign_courier_to_order(self, order_id: int) -> str:
         raise self.retry(exc=exc, countdown=60)
 
 
-@celery_app.task(name="app.tasks.order.update_delivery_tracking")
+@celery_app.task(bind=True, max_retries=3, name="app.tasks.order.update_delivery_tracking")
 def update_delivery_tracking(
+    self,
     order_id: int,
     lat: float,
     lon: float,
@@ -47,4 +48,4 @@ def update_delivery_tracking(
         return f"Tracking updated for order {order_id}"
     except Exception as exc:
         logger.error(f"Error updating delivery tracking: {exc}")
-        raise
+        raise self.retry(exc=exc, countdown=30)

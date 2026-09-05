@@ -1,9 +1,9 @@
-﻿"""
+"""
 User-related Celery tasks.
 """
 
-from app.tasks import celery_app
 from app.core.logging import get_logger
+from app.tasks import celery_app
 
 logger = get_logger(__name__)
 

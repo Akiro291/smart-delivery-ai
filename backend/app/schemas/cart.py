@@ -3,7 +3,6 @@ Cart and OrderItem schemas.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -21,13 +20,13 @@ class CartItem(CartItemBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
 
 class CartItemWithProduct(CartItem):
     product_name: str
     product_price: float
-    product_image_url: Optional[str] = None
+    product_image_url: str | None = None
 
 
 class OrderItemBase(BaseModel):
@@ -46,4 +45,4 @@ class OrderItem(OrderItemBase):
 
     id: int
     order_id: int
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None

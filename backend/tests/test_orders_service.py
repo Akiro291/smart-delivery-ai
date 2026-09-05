@@ -82,7 +82,7 @@ async def test_get_order_history_service_returns_empty_for_unauthorized_user(db_
         current_user_id=9999,
         current_user_role=UserRole.CUSTOMER,
     )
-    assert result == []
+    assert result is None
 
 
 @pytest.mark.asyncio

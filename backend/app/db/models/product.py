@@ -2,15 +2,16 @@
 Product model for catalog.
 """
 
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, Boolean
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, Text
+
 from app.db.base import Base, IDMixin, TimestampMixin
 
 
 class Product(Base, IDMixin, TimestampMixin):
     """Product model for catalog."""
-    
+
     __tablename__ = "products"
-    
+
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     price = Column(Float, nullable=False)

@@ -4,7 +4,6 @@ Order schemas for the application.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,18 +14,25 @@ class OrderBase(BaseModel):
     from_address: str
     to_address: str
     total_amount: Decimal
-    description: Optional[str] = None
+    description: str | None = None
     is_priority: bool = False
 
 
+class OrderItemCreate(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int = 1
+    price: float
+
+
 class OrderCreate(OrderBase):
-    customer_id: int
+    items: list[OrderItemCreate] | None = None
 
 
 class OrderUpdate(BaseModel):
-    status: Optional[OrderStatus] = None
-    courier_id: Optional[int] = None
-    description: Optional[str] = None
+    status: OrderStatus | None = None
+    courier_id: int | None = None
+    description: str | None = None
 
 
 class Order(OrderBase):
@@ -34,10 +40,10 @@ class Order(OrderBase):
 
     id: int
     customer_id: int
-    courier_id: Optional[int] = None
+    courier_id: int | None = None
     status: OrderStatus = OrderStatus.PENDING
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class OrderHistoryResponse(BaseModel):
@@ -45,9 +51,9 @@ class OrderHistoryResponse(BaseModel):
 
     id: int
     order_id: int
-    from_status: Optional[str] = None
+    from_status: str | None = None
     to_status: str
-    changed_by: Optional[int] = None
-    notes: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    changed_by: int | None = None
+    notes: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None

@@ -1,6 +1,6 @@
-const API_BASE = 'http://localhost:8000/api/v1'
-
 export function useApi() {
+  const config = useRuntimeConfig()
+  const API_BASE = config.public.apiBase || 'http://localhost:8000/api/v1'
   return {
     async get(path: string, options: Record<string, unknown> = {}) {
       const token = import.meta.client ? localStorage.getItem('token') : null

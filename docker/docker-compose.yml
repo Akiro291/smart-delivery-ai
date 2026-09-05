@@ -123,20 +123,6 @@ services:
     networks:
       - smart_delivery_network
 
-  # Frontend Next.js
-  frontend-nextjs:
-    build:
-      context: ./frontend/nextjs-app
-      dockerfile: Dockerfile
-    container_name: smart_delivery_frontend_nextjs
-    restart: always
-    ports:
-      - "3001:3000"
-    depends_on:
-      - backend
-    networks:
-      - smart_delivery_network
-
 volumes:
   postgres_data:
   rabbitmq_data:

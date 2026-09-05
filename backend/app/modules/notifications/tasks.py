@@ -1,11 +1,12 @@
-﻿"""
+"""
 Notification-related Celery tasks.
 """
 
-import aiohttp
-from app.tasks import celery_app
+import httpx
+
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.tasks import celery_app
 
 logger = get_logger(__name__)
 
@@ -25,15 +26,11 @@ def send_telegram_notification(
             "text": message,
             "parse_mode": parse_mode,
         }
-        import asyncio
-        import aiohttp
 
-        async def _send():
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as resp:
-                    return await resp.json()
+        response = httpx.post(url, json=payload, timeout=15)
+        response.raise_for_status()
+        result = response.json()
 
-        result = asyncio.run(_send())
         logger.info(f"Telegram notification sent to {chat_id}: {result}")
         return str(result)
     except Exception as exc:
@@ -52,8 +49,8 @@ def send_email_notification(
     """Send email notification."""
     try:
         import smtplib
-        from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
 
         msg = MIMEMultipart()
         msg["From"] = settings.SMTP_FROM
@@ -77,12 +74,13 @@ def send_email_notification(
         raise self.retry(exc=exc, countdown=60)
 
 
-@celery_app.task(name="app.tasks.notification.send_push_notification")
+@celery_app.task(bind=True, max_retries=3, name="app.tasks.notification.send_push_notification")
 def send_push_notification(
+    self,
     user_id: int,
     title: str,
     body: str,
-    data: dict = None,
+    data: dict | None = None,
 ) -> str:
     """Send push notification to user device."""
     try:
@@ -90,4 +88,4 @@ def send_push_notification(
         return f"Push notification sent to user {user_id}"
     except Exception as exc:
         logger.error(f"Error sending push notification: {exc}")
-        raise
+        raise self.retry(exc=exc, countdown=30)

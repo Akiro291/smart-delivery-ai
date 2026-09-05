@@ -32,7 +32,7 @@
 <script setup lang="ts">
 defineEmits(['toggle-sidebar'])
 
-const user = ref({ first_name: null as string | null, email: '' })
+const user = ref({ full_name: null as string | null, email: '' })
 
 onMounted(async () => {
   try {
@@ -43,8 +43,8 @@ onMounted(async () => {
   }
 })
 
-const userName = computed(() => user.value.first_name || user.value.email || 'User')
-const initial = computed(() => (user.value.first_name || 'U')[0]?.toUpperCase() || 'U')
+const userName = computed(() => user.value.full_name || user.value.email || 'User')
+const initial = computed(() => (user.value.full_name || 'U')[0]?.toUpperCase() || 'U')
 
 function logout() {
   localStorage.removeItem('token')

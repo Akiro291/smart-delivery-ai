@@ -2,7 +2,7 @@
 Dependencies for auth and authorization.
 """
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -33,6 +33,13 @@ async def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise credentials_exception
+    # Check that this is an access token, not a refresh token
+    if payload.get("type") == "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token cannot be used for access",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     user = await get_user_by_id(db, user_id=int(user_id))
     if not user:
         raise credentials_exception
@@ -43,8 +50,9 @@ def decode_token(token: str) -> dict | None:
     return verify_token(token)
 
 
-def require_role(allowed_roles: List[str]):
+def require_role(allowed_roles: list[str]):
     """Dependency factory to check if current user has one of the allowed roles."""
+
     async def role_checker(current_user: "User" = Depends(get_current_user)) -> "User":
         if current_user.role.name not in allowed_roles:
             raise HTTPException(
@@ -52,17 +60,23 @@ def require_role(allowed_roles: List[str]):
                 detail="Insufficient permissions",
             )
         return current_user
+
     return role_checker
 
 
-def require_any_role(allowed_roles: List[str]):
+def require_any_role(allowed_roles: list[str]):
     """Dependency to check if current user has any of the allowed roles.
-    
+
     This is an alias for require_role for backward compatibility.
     """
     return require_role(allowed_roles)
 
 
-def require_admin(current_user: "User" = Depends(require_role(["ADMIN"]))):
+async def require_admin(current_user: "User" = Depends(require_role(["ADMIN"]))):
     """Dependency to check if current user has ADMIN role."""
+    return current_user
+
+
+async def require_customer(current_user: "User" = Depends(require_role(["CUSTOMER"]))):
+    """Dependency to check if current user has CUSTOMER role."""
     return current_user

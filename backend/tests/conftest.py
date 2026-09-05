@@ -19,8 +19,11 @@ def _replace_host(url: str, new_host: str) -> str:
 @pytest.fixture(scope="session", autouse=True)
 def override_settings():
     local_url = _replace_host(settings.DATABASE_URL, "localhost")
-    test_database_url = local_url.replace("smart_delivery", "smart_delivery_test")
-    with patch.object(settings, 'DATABASE_URL', test_database_url):
+    # Normalize the database name so the fixture works both locally and in CI,
+    # where DATABASE_URL may already point at smart_delivery_test.
+    if not local_url.rsplit("/", 1)[-1].startswith("smart_delivery_test"):
+        local_url = local_url.rsplit("/", 1)[0] + "/smart_delivery_test"
+    with patch.object(settings, 'DATABASE_URL', local_url):
         yield
 
 
@@ -28,7 +31,7 @@ def override_settings():
 async def test_engine():
     """Create test database engine."""
     test_database_url = settings.DATABASE_URL
-    admin_url = test_database_url.replace("smart_delivery_test", "postgres")
+    admin_url = test_database_url.rsplit("/", 1)[0] + "/postgres"
 
     admin_engine = create_async_engine(
         admin_url,

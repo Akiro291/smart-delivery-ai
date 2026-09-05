@@ -11,7 +11,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500">Имя</label>
-              <p class="mt-1 text-lg">{{ user.first_name || 'не указано' }}</p>
+              <p class="mt-1 text-lg">{{ user.full_name || 'не указано' }}</p>
             </div>
           </div>
         </div>
@@ -23,7 +23,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
 
-const user = ref({ email: '', first_name: null as string | null })
+const user = ref({ email: '', full_name: null as string | null })
 
 onMounted(async () => {
   try {
