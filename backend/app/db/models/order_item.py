@@ -3,6 +3,7 @@ Cart and order items models.
 """
 
 from sqlalchemy import Column, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base, IDMixin, TimestampMixin
 
@@ -27,3 +28,5 @@ class OrderItem(Base, IDMixin, TimestampMixin):
     product_name = Column(String(255), nullable=False)
     quantity = Column(Integer, nullable=False, default=1)
     price = Column(Float, nullable=False)
+
+    order = relationship("Order", back_populates="items")

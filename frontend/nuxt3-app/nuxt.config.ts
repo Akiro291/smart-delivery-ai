@@ -13,7 +13,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   runtimeConfig: {
     public: {
-      apiBase: 'http://localhost:8000/api/v1',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api/v1',
+      wsUrl: process.env.NUXT_PUBLIC_WS_URL || '',
     },
   },
   compatibilityDate: '2026-07-30',
@@ -21,6 +22,10 @@ export default defineNuxtConfig({
     '/auth/**': { ssr: false },
     '/dashboard/**': { ssr: false },
     '/admin/**': { ssr: false },
+    '/customer/**': { ssr: false },
+    '/courier/**': { ssr: false },
+    '/orders/**': { ssr: false },
+    '/profile/**': { ssr: false },
   },
   nitro: {
     routeRules: {

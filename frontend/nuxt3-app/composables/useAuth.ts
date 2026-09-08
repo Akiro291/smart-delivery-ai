@@ -25,7 +25,7 @@ export const useAuth = () => {
   }
 
   const refreshToken = async () => {
-    return await authStore.refreshToken()
+    return await authStore.refreshAccessToken()
   }
 
   const init = async () => {

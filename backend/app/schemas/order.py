@@ -42,6 +42,8 @@ class Order(OrderBase):
     customer_id: int
     courier_id: int | None = None
     status: OrderStatus = OrderStatus.PENDING
+    customer_name: str | None = None
+    courier_name: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

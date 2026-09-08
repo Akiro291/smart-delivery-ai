@@ -32,6 +32,13 @@ interface OrderState {
   error: string | null
 }
 
+interface OrderStats {
+  total: number
+  by_status: Record<string, number>
+  completed_revenue: number
+  active: number
+}
+
 export const useOrdersStore = defineStore('orders', {
   state: (): OrderState => ({
     orders: [],
@@ -161,6 +168,43 @@ export const useOrdersStore = defineStore('orders', {
         return history
       } catch (err: any) {
         this.error = err.message || 'Failed to fetch order history'
+        throw err
+      }
+    },
+
+    async fetchStats(): Promise<OrderStats | null> {
+      try {
+        const apiBase = useRuntimeConfig().public.apiBase
+        const { token } = useAuthStore()
+        const stats = await $fetch(`${apiBase}/orders/stats/summary`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        return stats as OrderStats
+      } catch (err: any) {
+        this.error = err.message || 'Failed to fetch stats'
+        return null
+      }
+    },
+
+    async assignCourier(orderId: number, courierId: number) {
+      try {
+        const apiBase = useRuntimeConfig().public.apiBase
+        const { token } = useAuthStore()
+        const order = await $fetch(`${apiBase}/orders/${orderId}/assign`, {
+          method: 'POST',
+          body: { courier_id: courierId },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        const index = this.orders.findIndex((o) => o.id === orderId)
+        if (index !== -1) {
+          this.orders[index] = order as Order
+        }
+        return order
+      } catch (err: any) {
+        this.error = err.message || 'Failed to assign courier'
         throw err
       }
     },

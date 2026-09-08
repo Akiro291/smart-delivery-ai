@@ -4,6 +4,7 @@ Order history models for tracking order changes.
 
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base, IDMixin, TimestampMixin
 from app.db.models.order import OrderStatus
@@ -19,3 +20,5 @@ class OrderHistory(Base, IDMixin, TimestampMixin):
     to_status = Column(SQLEnum(OrderStatus), nullable=False)
     changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     notes = Column(String(500), nullable=True)
+
+    order = relationship("Order", back_populates="history")

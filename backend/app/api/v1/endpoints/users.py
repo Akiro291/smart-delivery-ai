@@ -2,8 +2,8 @@
 Users endpoints with role management.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,7 @@ from app.repositories.user_repo import (
     get_user_count_by_role,
     get_users_by_role,
     update_role_request,
+    update_user,
     update_user_role,
 )
 from app.schemas.user import (
@@ -44,6 +45,9 @@ from app.schemas.user import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+# Roles with back-office user management access
+MANAGER_ROLES = ["ADMIN", "MANAGER"]
 
 
 @router.post("/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
@@ -68,7 +72,7 @@ async def list_users(
     limit: int = Query(100, ge=1, le=500),
     role: str | None = Query(None),
     db: AsyncSession = Depends(get_async_session),
-    current_user: UserModel = Depends(require_role(["ADMIN"])),
+    current_user: UserModel = Depends(require_role(MANAGER_ROLES)),
 ):
     if role:
         users = await get_users_by_role(db, role, skip, limit)
@@ -80,7 +84,7 @@ async def list_users(
 @router.get("/count", response_model=dict)
 async def get_users_count(
     db: AsyncSession = Depends(get_async_session),
-    current_user: UserModel = Depends(require_role(["ADMIN"])),
+    current_user: UserModel = Depends(require_role(MANAGER_ROLES)),
 ):
     total = await get_user_count(db)
     customers = await get_user_count_by_role(db, "CUSTOMER")
@@ -92,9 +96,6 @@ async def get_users_count(
         "couriers": couriers,
         "admins": admins,
     }
-
-
-
 
 
 @router.post("/role-request", response_model=RoleRequestSchema)
@@ -230,6 +231,8 @@ async def get_my_role_request(
     current_user: UserModel = Depends(get_current_user),
 ):
     return await get_role_request_by_user(db, current_user.id)
+
+
 @router.get("/{user_id}", response_model=UserSchema)
 async def get_user(
     user_id: int,
@@ -242,6 +245,35 @@ async def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+    return user
+
+
+class UserProfileUpdate(BaseModel):
+    full_name: str | None = None
+    phone: str | None = None
+
+
+@router.put("/{user_id}", response_model=UserSchema)
+async def update_user_profile(
+    user_id: int,
+    profile_data: UserProfileUpdate,
+    db: AsyncSession = Depends(get_async_session),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Update own profile; admins can update any profile."""
+    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+    user = await get_user_by_id(db, user_id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    update_data = {k: v for k, v in profile_data.model_dump(exclude_unset=True).items()}
+    user = await update_user(db, user, update_data)
     return user
 
 

@@ -55,6 +55,7 @@
               <select v-model="tempRole[user.id]" class="border rounded px-2 py-1 text-xs">
                 <option value="CUSTOMER">Клиент</option>
                 <option value="COURIER">Курьер</option>
+                <option value="MANAGER">Менеджер</option>
                 <option value="ADMIN">Админ</option>
               </select>
               <button @click="changeRole(user.id)" class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
@@ -94,8 +95,9 @@ const counts = ref({ total: 0, customers: 0, couriers: 0, admins: 0 })
 const tempRole = ref<Record<number, string>>({})
 
 function roleBadgeClass(role: string) {
-  const classes = {
+  const classes: Record<string, string> = {
     ADMIN: 'px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium',
+    MANAGER: 'px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium',
     COURIER: 'px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium',
     CUSTOMER: 'px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium',
   }
@@ -103,8 +105,9 @@ function roleBadgeClass(role: string) {
 }
 
 function roleLabel(role: string) {
-  const labels = {
+  const labels: Record<string, string> = {
     ADMIN: 'Админ',
+    MANAGER: 'Менеджер',
     COURIER: 'Курьер',
     CUSTOMER: 'Клиент',
   }

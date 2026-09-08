@@ -1,7 +1,6 @@
 ﻿<template>
-  <AdminLayout>
-    <div class="space-y-6">
-      <h1 class="text-2xl font-bold text-gray-800">Курьеры</h1>
+  <div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-800">Курьеры</h1>
       <div class="bg-white p-6 rounded shadow overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -29,12 +28,11 @@
           Курьеров пока нет
         </div>
       </div>
-    </div>
-  </AdminLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: ['auth', 'admin'], layout: 'admin' })
 
 interface User {
   id: number

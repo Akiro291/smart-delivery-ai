@@ -1,66 +1,56 @@
 <template>
-  <DashboardLayout>
-    <template #default>
-      <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <h1 class="text-2xl font-bold text-gray-800">Курьеры</h1>
-          <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">+ Добавить</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="courier in couriers" :key="courier.id" class="bg-white p-6 rounded shadow">
-            <div class="flex items-center gap-4">
-              <div :class="courierBadgeClass(courier)" class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold">
-                {{ courier.initials }}
-              </div>
-              <div>
-                <h3 class="font-semibold">{{ courier.name }}</h3>
-                <p :class="courierOnlineTextClass(courier)">
-                  {{ courierText(courier) }}
-                </p>
-              </div>
-            </div>
-            <div class="mt-4 pt-4 border-t flex justify-between text-sm">
-              <span class="text-gray-500">Доставок: {{ courier.deliveries }}</span>
-              <span class="text-gray-500">Рейтинг: {{ courier.rating }} ⭐</span>
-            </div>
+  <div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-800">Курьеры</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="courier in couriers" :key="courier.id" class="bg-white p-6 rounded shadow">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold text-lg">
+            {{ initials(courier.full_name || courier.email) }}
+          </div>
+          <div>
+            <h3 class="font-semibold">{{ courier.full_name || 'Без имени' }}</h3>
+            <p class="text-sm" :class="courier.is_active ? 'text-green-600' : 'text-red-500'">
+              {{ courier.is_active ? 'Активен' : 'Неактивен' }}
+            </p>
           </div>
         </div>
-        <div v-if="couriers.length === 0" class="text-center py-12 text-gray-500">Курьеров пока нет</div>
+        <div class="mt-4 pt-4 border-t flex justify-between text-sm">
+          <span class="text-gray-500">{{ courier.email }}</span>
+          <span v-if="courier.phone" class="text-gray-500">{{ courier.phone }}</span>
+        </div>
       </div>
-    </template>
-  </DashboardLayout>
+    </div>
+    <div v-if="couriers.length === 0" class="text-center py-12 text-gray-500">Курьеров пока нет</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: 'manager', layout: 'manager' })
 
-interface Courier {
+interface UserRow {
   id: number
-  name: string
-  initials: string
-  online: boolean
-  deliveries: number
-  rating: number
+  email: string
+  full_name: string | null
+  phone: string | null
+  is_active: boolean
 }
 
-const couriers = ref<Courier[]>([
-  { id: 1, name: 'Алексей Козлов', initials: 'АК', online: true, deliveries: 156, rating: 4.8 },
-  { id: 2, name: 'Дмитрий Волков', initials: 'ДВ', online: true, deliveries: 132, rating: 4.9 },
-  { id: 3, name: 'Сергей Новиков', initials: 'СН', online: false, deliveries: 89, rating: 4.5 },
-])
+const authStore = useAuthStore()
+const couriers = ref<UserRow[]>([])
+const apiBase = useRuntimeConfig().public.apiBase
 
-function courierBadgeClass(c: Courier) {
-  if (c.online) return 'bg-green-100 text-green-600'
-  return 'bg-gray-100 text-gray-600'
-}
+onMounted(async () => {
+  try {
+    couriers.value = (await $fetch(`${apiBase}/users/?role=COURIER&limit=100`, {
+      headers: { Authorization: `Bearer ${authStore.token}` },
+    })) as UserRow[]
+  } catch {
+    couriers.value = []
+  }
+})
 
-function courierOnlineTextClass(c: Courier) {
-  if (c.online) return 'text-green-600'
-  return 'text-gray-500'
-}
-
-function courierText(c: Courier) {
-  if (c.online) return 'Онлайн'
-  return 'Оффлайн'
+function initials(name: string) {
+  const parts = name.replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean)
+  return (parts[0]?.[0] || '?') + (parts[1]?.[0] || '')
 }
 </script>

@@ -1,20 +1,20 @@
-// Global role middleware - redirects users based on their role
+// Глобальный ролевой middleware: перенаправляет с индекса дашборда на панель роли
 export default defineNuxtRouteMiddleware((to) => {
   if (import.meta.client) {
     const token = localStorage.getItem('token')
     const role = localStorage.getItem('user_role')
-    
+
     if (!token) return
-    
-    // Redirect admin to /admin, courier to /courier, customer to /customer
+
+    const ROLE_HOME: Record<string, string> = {
+      ADMIN: '/admin',
+      MANAGER: '/dashboard',
+      COURIER: '/courier',
+      CUSTOMER: '/customer',
+    }
+
     if (to.path === '/dashboard') {
-      if (role === 'ADMIN') {
-        return navigateTo('/admin')
-      } else if (role === 'COURIER') {
-        return navigateTo('/courier')
-      } else {
-        return navigateTo('/customer')
-      }
+      return navigateTo((role && ROLE_HOME[role]) || '/customer')
     }
   }
 })

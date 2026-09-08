@@ -44,10 +44,10 @@ Database Layer (SQLAlchemy + PostgreSQL)
 - Alembic (migrations)
 
 ### Frontend
-- Nuxt 3 (Vue 3 + TypeScript)
-- Next.js (React + TypeScript)
+- Nuxt 3 (Vue 3 + TypeScript) — единственный frontend
 - Tailwind CSS
 - Pinia (state management)
+- WebSocket (real-time tracking)
 
 ### AI
 - OpenAI API
@@ -104,14 +104,10 @@ smart-delivery-ai/
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
-│   ├── nuxt3-app/               # Nuxt 3 application
-│   │   ├── pages/
-│   │   ├── components/
-│   │   ├── stores/
-│   │   └── ...
-│   └── nextjs-app/              # Next.js application
-│       ├── app/
+│   └── nuxt3-app/               # Nuxt 3 application
+│       ├── pages/
 │       ├── components/
+│       ├── stores/
 │       └── ...
 ├── docker/
 │   ├── docker-compose.yml

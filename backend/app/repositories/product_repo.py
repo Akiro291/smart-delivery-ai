@@ -38,9 +38,7 @@ async def get_product_by_id(db: AsyncSession, product_id: int) -> Product | None
 async def get_products_by_category(db: AsyncSession, category: str) -> list[Product]:
     """Get products by category."""
     result = await db.execute(
-        select(Product)
-        .where(Product.category == category, Product.is_available)
-        .order_by(Product.created_at.desc())
+        select(Product).where(Product.category == category, Product.is_available).order_by(Product.created_at.desc())
     )
     return list(result.scalars().all())
 

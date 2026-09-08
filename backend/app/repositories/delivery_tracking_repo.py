@@ -81,9 +81,37 @@ async def update_delivery_tracking(
         "IN_PROGRESS": 50,
         "COMPLETED": 100,
     }
-    tracking.last_updated = int(datetime.now(UTC).timestamp())
+    tracking.last_updated = datetime.now(UTC)
     tracking.delivery_progress = _progress_by_status.get(status.upper(), tracking.delivery_progress)
 
+    await db.commit()
+    await db.refresh(tracking)
+    return tracking
+
+
+async def get_or_create_for_order(db: AsyncSession, order_id: int) -> DeliveryTracking:
+    """Get the tracking record for an order, creating it if missing (1:1)."""
+    result = await db.execute(select(DeliveryTracking).where(DeliveryTracking.order_id == order_id))
+    tracking = result.scalar_one_or_none()
+    if tracking:
+        return tracking
+    tracking = DeliveryTracking(order_id=order_id, delivery_progress=0)
+    db.add(tracking)
+    await db.commit()
+    await db.refresh(tracking)
+    return tracking
+
+
+async def update_location(
+    db: AsyncSession,
+    tracking: DeliveryTracking,
+    lat: float,
+    lon: float,
+) -> DeliveryTracking:
+    """Update courier coordinates."""
+    tracking.current_lat = lat
+    tracking.current_lon = lon
+    tracking.last_updated = datetime.now(UTC)
     await db.commit()
     await db.refresh(tracking)
     return tracking

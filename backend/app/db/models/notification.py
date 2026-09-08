@@ -4,7 +4,7 @@ Notification models.
 
 from enum import Enum
 
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SQLEnum
 
 from app.db.base import Base, IDMixin, TimestampMixin
@@ -39,4 +39,4 @@ class Notification(Base, IDMixin, TimestampMixin):
     title = Column(String(255), nullable=False)
     message = Column(String(1000), nullable=False)
     meta_data = Column(String(2000), nullable=True)
-    sent_at = Column(Integer, nullable=True)
+    sent_at = Column(DateTime(timezone=True), nullable=True)

@@ -29,12 +29,9 @@ defineEmits(['toggle-sidebar'])
 const userName = localStorage.getItem('user_name') || 'Администратор'
 const initial = computed(() => (userName || 'A')[0]?.toUpperCase() || 'A')
 
-function logout() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user_role')
-  localStorage.removeItem('user_id')
-  localStorage.removeItem('user_name')
+async function logout() {
+  const authStore = useAuthStore()
+  await authStore.logout()
   navigateTo('/auth/login')
 }
 </script>

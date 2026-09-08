@@ -5,7 +5,7 @@ Order repository with data access operations.
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.order import Order, OrderStatus
@@ -69,10 +69,19 @@ async def update_order_status(
     new_status: OrderStatus,
     courier_id: int | None = None,
     notes: str | None = None,
+    changed_by: int | None = None,
 ) -> Order | None:
-    """Update order status and create history record."""
+    """Update order status and create history record.
+
+    Returns None if the order does not exist or the transition is not allowed.
+    """
     order = await get_order_by_id(db, order_id)
     if not order:
+        return None
+
+    from app.services.orders_service import is_transition_allowed
+
+    if not is_transition_allowed(order.status, new_status):
         return None
 
     old_status = order.status
@@ -85,6 +94,7 @@ async def update_order_status(
         order_id=order_id,
         from_status=old_status.value if old_status else None,
         to_status=new_status.value,
+        changed_by=changed_by,
         notes=notes,
     )
     db.add(history)
@@ -92,6 +102,50 @@ async def update_order_status(
     await db.commit()
     await db.refresh(order)
     return order
+
+
+async def assign_courier(
+    db: AsyncSession,
+    order: Order,
+    courier_id: int,
+    assigned_by: int | None = None,
+) -> Order:
+    """Assign a courier to an order and move it to ASSIGNED (with history)."""
+    old_status = order.status
+    order.courier_id = courier_id
+    if order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
+        order.status = OrderStatus.ASSIGNED
+    db.add(
+        OrderHistory(
+            order_id=order.id,
+            from_status=old_status,
+            to_status=order.status,
+            changed_by=assigned_by,
+            notes=f"Courier {courier_id} assigned",
+        )
+    )
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+async def get_order_stats(db: AsyncSession) -> dict[str, Any]:
+    """Aggregate order statistics for dashboards."""
+    result = await db.execute(select(Order.status, func.count(Order.id)).group_by(Order.status))
+    counts = {row[0].value: row[1] for row in result.all()}
+
+    total = sum(counts.values())
+    revenue_result = await db.execute(
+        select(func.coalesce(func.sum(Order.total_amount), 0)).where(Order.status == OrderStatus.COMPLETED)
+    )
+    revenue = revenue_result.scalar_one()
+
+    return {
+        "total": total,
+        "by_status": counts,
+        "completed_revenue": float(revenue),
+        "active": total - counts.get(OrderStatus.COMPLETED.value, 0) - counts.get(OrderStatus.CANCELLED.value, 0),
+    }
 
 
 async def update_order(

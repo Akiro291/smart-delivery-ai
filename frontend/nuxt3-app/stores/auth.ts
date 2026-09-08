@@ -6,7 +6,7 @@ interface User {
   email: string
   full_name: string | null
   phone: string | null
-  role: 'CUSTOMER' | 'COURIER' | 'ADMIN'
+  role: 'CUSTOMER' | 'COURIER' | 'MANAGER' | 'ADMIN'
   is_active: boolean
   is_superuser: boolean
   created_at: string | null
@@ -37,6 +37,7 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.token,
     userRole: (state) => state.user?.role || null,
     isAdmin: (state) => state.user?.role === 'ADMIN',
+    isManager: (state) => state.user?.role === 'MANAGER',
     isCourier: (state) => state.user?.role === 'COURIER',
     isCustomer: (state) => state.user?.role === 'CUSTOMER',
     userName: (state) => state.user?.full_name || state.user?.email?.split('@')[0] || '',
@@ -127,7 +128,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async refreshToken() {
+    async refreshAccessToken() {
       if (!this.refreshToken) return false
 
       try {
@@ -171,7 +172,7 @@ export const useAuthStore = defineStore('auth', {
           localStorage.setItem('user_data', JSON.stringify(user))
         }
       } catch {
-        await this.refreshToken()
+        await this.refreshAccessToken()
       }
     },
 

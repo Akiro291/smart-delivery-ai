@@ -3,38 +3,10 @@ User schemas for the application.
 """
 
 from datetime import datetime
-from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, GetCoreSchemaHandler
-from pydantic_core import CoreSchema, core_schema
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.db.models.user import RoleRequestStatus, UserRole
-
-
-class UserRoleStr(str):
-    """Pydantic type that accepts UserRole enum and serializes as string."""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: GetCoreSchemaHandler) -> CoreSchema:
-        def _validate(value: Any) -> str:
-            if isinstance(value, UserRole):
-                return value.name
-            return str(value)
-
-        return core_schema.with_info_plain_validator_function(lambda v, h: _validate(v))
-
-
-class RoleRequestStatusStr(str):
-    """Pydantic type that accepts RoleRequestStatus enum and serializes as string."""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: GetCoreSchemaHandler) -> CoreSchema:
-        def _validate(value: Any) -> str:
-            if isinstance(value, RoleRequestStatus):
-                return value.name
-            return str(value)
-
-        return core_schema.with_info_plain_validator_function(lambda v, h: _validate(v))
 
 
 class UserBase(BaseModel):
@@ -89,8 +61,8 @@ class RoleRequest(BaseModel):
 
     id: int
     user_id: int
-    requested_role: UserRoleStr
-    status: RoleRequestStatusStr
+    requested_role: UserRole
+    status: RoleRequestStatus
     reason: str | None = None
     reviewed_by: int | None = None
     reviewed_at: datetime | None = None

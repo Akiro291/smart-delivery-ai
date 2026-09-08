@@ -143,6 +143,8 @@ async def get_product_stats(
     """Статистика по товарам (только админ)."""
     total = await get_product_count(db)
     return {"total_products": total}
+
+
 @router.post("/{product_id}/image", response_model=Product)
 async def upload_product_image(
     product_id: int,

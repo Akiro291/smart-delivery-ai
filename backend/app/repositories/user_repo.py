@@ -45,9 +45,7 @@ async def get_user_count(db: AsyncSession) -> int:
 
 async def get_user_count_by_role(db: AsyncSession, role: str) -> int:
     """Get user count by role."""
-    result = await db.execute(
-        select(func.count()).select_from(User).where(User.role == UserRole(role))
-    )
+    result = await db.execute(select(func.count()).select_from(User).where(User.role == UserRole(role)))
     return result.scalar_one()
 
 

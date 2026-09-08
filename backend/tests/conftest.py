@@ -7,7 +7,9 @@ from unittest.mock import patch
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+import app.db.models  # noqa: F401 - register all models on Base.metadata
 from app.core.config import settings
 from app.db.base import Base
 
@@ -28,14 +30,13 @@ def override_settings():
 
 
 @pytest.fixture(scope="session")
-async def test_engine():
-    """Create test database engine."""
+async def _test_db_setup():
+    """Create the test database once per session (schema only)."""
     test_database_url = settings.DATABASE_URL
     admin_url = test_database_url.rsplit("/", 1)[0] + "/postgres"
 
     admin_engine = create_async_engine(
         admin_url,
-        echo=True,
         isolation_level="AUTOCOMMIT",
     )
     async with admin_engine.connect() as conn:
@@ -45,15 +46,21 @@ async def test_engine():
             pass
     await admin_engine.dispose()
 
+
+@pytest.fixture
+async def test_engine(_test_db_setup):
+    """Create a fresh engine per test so connections bind to the current event loop."""
     engine = create_async_engine(
-        test_database_url,
-        echo=True,
+        settings.DATABASE_URL,
         connect_args={"statement_cache_size": 0},
         pool_size=1,
         max_overflow=0,
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Clean all data so tests are idempotent against a persistent test DB
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'TRUNCATE TABLE "{table.name}" RESTART IDENTITY CASCADE'))
     yield engine
     await engine.dispose()
 
@@ -61,9 +68,7 @@ async def test_engine():
 @pytest.fixture
 async def db_session(test_engine):
     """Create database session for tests."""
-    async_session = async_sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session = async_sessionmaker(test_engine, expire_on_commit=False)
     session = async_session()
     try:
         yield session

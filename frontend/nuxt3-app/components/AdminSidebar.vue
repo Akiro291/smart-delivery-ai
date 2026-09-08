@@ -53,6 +53,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { label: 'Панель', to: '/admin', icon: '\uD83D\uDCCA' },
   { label: 'Пользователи', to: '/admin/users', icon: '\uD83D\uDC65' },
+  { label: 'Роли', to: '/admin/roles', icon: '\uD83D\uDD11' },
   { label: 'Заказы', to: '/admin/orders', icon: '\uD83D\uDCCB' },
   { label: 'Товары', to: '/admin/products', icon: '\uD83D\uDED2' },
   { label: 'Курьеры', to: '/admin/couriers', icon: '\uD83D\uDE9A' },

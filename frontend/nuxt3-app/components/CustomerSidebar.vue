@@ -52,6 +52,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { label: 'Каталог', to: '/customer', icon: '\uD83D\uDED2' },
+  { label: 'Корзина', to: '/customer/cart', icon: '\uD83D\uDCD1' },
   { label: 'Мои заказы', to: '/customer/orders', icon: '\uD83D\uDCE6' },
   { label: 'Профиль', to: '/customer/profile', icon: '\uD83D\uDC64' },
 ]

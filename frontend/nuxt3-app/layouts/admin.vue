@@ -11,7 +11,5 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: ['auth', 'admin'] })
-
 const sidebarCollapsed = ref(false)
 </script>
