@@ -1,33 +1,50 @@
 ﻿<template>
-    <div class="space-y-6">
-      <h1 class="text-2xl font-bold text-gray-800">Мои заказы</h1>
-      <div v-if="ordersStore.isLoading" class="text-gray-500">Загрузка...</div>
-      <div v-else-if="ordersStore.orders.length" class="space-y-4">
-        <div v-for="order in ordersStore.orders" :key="order.id" class="bg-white p-6 rounded shadow">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-semibold">Заказ #{{ order.id }}</h3>
-            <span :class="statusClass(order.status)" class="px-3 py-1 rounded text-xs">{{ statusLabel(order.status) }}</span>
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Мои заказы</h1>
+      <p class="text-gray-500 text-sm mt-1">Меняйте статусы по мере выполнения</p>
+    </div>
+
+    <div v-if="ordersStore.orders.length" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div v-for="order in ordersStore.orders" :key="order.id" class="card card-hover p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-gray-800">Заказ #{{ order.id }}</h3>
+          <UiStatusBadge :status="order.status" />
+        </div>
+        <div class="space-y-2.5 text-sm">
+          <div class="flex items-center gap-2.5 text-gray-600">
+            <span class="h-2 w-2 rounded-full bg-brand-500 flex-shrink-0" />
+            <span class="truncate">{{ order.from_address }}</span>
           </div>
-          <p class="text-sm text-gray-500">{{ order.from_address }} → {{ order.to_address }}</p>
-          <p v-if="order.description" class="text-sm text-gray-500 mt-1">{{ order.description }}</p>
-          <div class="flex items-center justify-between mt-4">
-            <p class="font-bold">{{ formatMoney(order.total_amount) }} ₽</p>
-            <div class="flex gap-2" v-if="canChangeStatus(order)">
-              <button
-                v-for="next in nextStatuses(order.status)"
-                :key="next"
-                @click="changeStatus(order, next)"
-                :class="next === 'CANCELLED' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'"
-                class="px-4 py-2 text-white rounded text-sm"
-              >
-                {{ actionLabel(next) }}
-              </button>
-            </div>
+          <div class="flex items-center gap-2.5 text-gray-600">
+            <span class="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+            <span class="truncate">{{ order.to_address }}</span>
           </div>
         </div>
+        <p v-if="order.description" class="text-xs text-gray-400 mt-3 line-clamp-2">{{ order.description }}</p>
+
+        <div v-if="canChangeStatus(order)" class="flex gap-2 mt-5 pt-4 border-t border-gray-50">
+          <button
+            v-for="next in nextStatuses(order.status)"
+            :key="next"
+            @click="changeStatus(order, next)"
+            :class="next === 'CANCELLED' ? 'btn-secondary !text-red-600 hover:!bg-red-50' : 'btn-primary flex-1'"
+          >
+            {{ actionLabel(next) }}
+          </button>
+        </div>
+        <div v-else class="mt-5 pt-4 border-t border-gray-50 flex justify-between items-center">
+          <span class="text-xs text-gray-400">{{ formatDate(order.created_at) }}</span>
+          <span class="font-bold">{{ formatMoney(order.total_amount) }} ₽</span>
+        </div>
       </div>
-      <div v-else class="bg-white p-12 rounded shadow text-center text-gray-500">Заказов пока нет</div>
     </div>
+
+    <UiSpinner v-else-if="ordersStore.isLoading" label="Загрузка…" />
+    <div v-else class="card">
+      <UiEmptyState icon="📦" title="Заказов пока нет" description="Назначенные вам заказы появятся здесь" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -65,33 +82,5 @@ function actionLabel(status: string) {
     CANCELLED: 'Отменить',
   }
   return labels[status] || status
-}
-
-function statusClass(status: string) {
-  const map: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-blue-100 text-blue-800',
-    ASSIGNED: 'bg-indigo-100 text-indigo-800',
-    IN_PROGRESS: 'bg-cyan-100 text-cyan-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
-  }
-  return map[status] || 'bg-gray-100 text-gray-800'
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    PENDING: 'Ожидает',
-    CONFIRMED: 'Подтверждён',
-    ASSIGNED: 'Назначен',
-    IN_PROGRESS: 'В пути',
-    COMPLETED: 'Доставлен',
-    CANCELLED: 'Отменён',
-  }
-  return labels[status] || status
-}
-
-function formatMoney(value: number | string) {
-  return Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
 }
 </script>

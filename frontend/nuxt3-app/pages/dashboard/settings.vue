@@ -1,30 +1,43 @@
 <template>
-  <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-800">Профиль организации</h1>
-    <div class="bg-white rounded shadow p-6 max-w-lg">
-      <h3 class="text-lg font-semibold mb-4">Данные аккаунта</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium">Email</label>
-          <input type="email" :value="authStore.user?.email || ''" disabled
-            class="mt-1 block w-full px-3 py-2 border rounded bg-gray-50 text-gray-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium">Полное имя</label>
-          <input v-model="fullName" type="text"
-            class="mt-1 block w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium">Телефон</label>
-          <input v-model="phone" type="text"
-            class="mt-1 block w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <button @click="save" :disabled="isSaving"
-          class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-          {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
-        </button>
-        <p v-if="saved" class="text-green-600 text-sm">Профиль обновлён</p>
+  <div class="space-y-6 max-w-lg">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Профиль организации</h1>
+      <p class="text-gray-500 text-sm mt-1">Аккаунт менеджера</p>
+    </div>
+
+    <div class="card p-6 space-y-5">
+      <div>
+        <label class="label">Email</label>
+        <input type="email" :value="authStore.user?.email || ''" disabled class="input bg-gray-50" />
       </div>
+      <div>
+        <label class="label">Полное имя</label>
+        <input v-model="fullName" type="text" class="input" />
+      </div>
+      <div>
+        <label class="label">Телефон</label>
+        <input v-model="phone" type="tel" class="input" />
+      </div>
+      <UiAlert v-if="saved" text="Профиль обновлён" tone="success" />
+      <UiButton :loading="isSaving" @click="save">Сохранить изменения</UiButton>
+    </div>
+
+    <div class="card p-6">
+      <h3 class="font-semibold text-gray-800 mb-4">Информация о системе</h3>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between py-1.5 border-b border-gray-50">
+          <dt class="text-gray-500">Платформа</dt>
+          <dd class="font-medium">Smart Delivery AI</dd>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-gray-50">
+          <dt class="text-gray-500">Версия API</dt>
+          <dd class="font-medium">v1 (/api/v1)</dd>
+        </div>
+        <div class="flex justify-between py-1.5">
+          <dt class="text-gray-500">Всего заказов</dt>
+          <dd class="font-medium">{{ statsTotal ?? '—' }}</dd>
+        </div>
+      </dl>
     </div>
   </div>
 </template>
@@ -33,14 +46,18 @@
 definePageMeta({ middleware: 'manager', layout: 'manager' })
 
 const authStore = useAuthStore()
+const ordersStore = useOrdersStore()
 const apiBase = useRuntimeConfig().public.apiBase
 const fullName = ref(authStore.user?.full_name || '')
 const phone = ref(authStore.user?.phone || '')
 const isSaving = ref(false)
 const saved = ref(false)
+const statsTotal = ref<number | null>(null)
 
-onMounted(() => {
+onMounted(async () => {
   authStore.fetchUser()
+  const stats = await ordersStore.fetchStats()
+  statsTotal.value = stats?.total ?? null
 })
 
 async function save() {
@@ -55,6 +72,7 @@ async function save() {
     })
     await authStore.fetchUser()
     saved.value = true
+    setTimeout(() => (saved.value = false), 3000)
   } catch (e: any) {
     alert(e?.data?.detail || e?.message || 'Ошибка сохранения')
   } finally {

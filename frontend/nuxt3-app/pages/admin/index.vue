@@ -1,43 +1,40 @@
 ﻿<template>
-  <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-800">Панель администратора</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500">Пользователей</h3>
-        <p class="text-3xl font-bold mt-2">{{ counts.total || 0 }}</p>
-      </div>
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500">Клиентов</h3>
-        <p class="text-3xl font-bold mt-2 text-blue-600">{{ counts.customers || 0 }}</p>
-      </div>
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500">Курьеров</h3>
-        <p class="text-3xl font-bold mt-2 text-green-600">{{ counts.couriers || 0 }}</p>
-      </div>
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500">Админов</h3>
-        <p class="text-3xl font-bold mt-2 text-red-600">{{ counts.admins || 0 }}</p>
-      </div>
+  <div class="space-y-8">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Панель администратора</h1>
+      <p class="text-gray-500 text-sm mt-1">Состояние платформы в целом</p>
     </div>
-    <div class="bg-white p-6 rounded shadow">
-      <h3 class="text-lg font-semibold mb-4">Быстрые действия</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <NuxtLink to="/admin/users" class="p-4 bg-purple-50 rounded hover:bg-purple-100 text-center">
-          <div class="text-2xl mb-1">&#x1F465;</div>
-          <div class="text-sm font-medium">Пользователи</div>
-        </NuxtLink>
-        <NuxtLink to="/admin/roles" class="p-4 bg-yellow-50 rounded hover:bg-yellow-100 text-center">
-          <div class="text-2xl mb-1">&#x1F512;</div>
-          <div class="text-sm font-medium">Управление ролями</div>
-        </NuxtLink>
-        <NuxtLink to="/admin/orders" class="p-4 bg-blue-50 rounded hover:bg-blue-100 text-center">
-          <div class="text-2xl mb-1">&#x1F4CB;</div>
-          <div class="text-sm font-medium">Заказы</div>
-        </NuxtLink>
-        <NuxtLink to="/admin/products" class="p-4 bg-green-50 rounded hover:bg-green-100 text-center">
-          <div class="text-2xl mb-1">&#x1F6D2;</div>
-          <div class="text-sm font-medium">Товары</div>
-        </NuxtLink>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <UiStat label="Всего пользователей" :value="counts.total" icon="👥" tone="indigo" />
+      <UiStat label="Клиентов" :value="counts.customers" icon="🛍️" tone="cyan" />
+      <UiStat label="Курьеров" :value="counts.couriers" icon="🚚" tone="emerald" />
+      <UiStat label="Администраторов" :value="counts.admins" icon="👑" tone="red" />
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-6">
+        <h3 class="font-semibold text-gray-800 mb-5">Быстрые действия</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <NuxtLink v-for="action in actions" :key="action.to" :to="action.to" class="group flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-100 hover:border-brand-200 hover:bg-brand-50/50 transition-all">
+            <span class="text-2xl group-hover:scale-110 transition-transform">{{ action.icon }}</span>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-brand-700">{{ action.label }}</span>
+          </NuxtLink>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="font-semibold text-gray-800 mb-5">Заказы платформы</h3>
+        <div v-if="stats" class="space-y-3.5">
+          <div v-for="row in statusRows" :key="row.status" class="flex items-center gap-3">
+            <span class="w-24 text-xs text-gray-500 flex-shrink-0">{{ row.label }}</span>
+            <div class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700" :class="row.bar" :style="{ width: row.percent + '%' }" />
+            </div>
+            <span class="w-8 text-right text-xs font-bold text-gray-700">{{ row.count }}</span>
+          </div>
+        </div>
+        <UiSpinner v-else label="Загрузка статистики…" />
       </div>
     </div>
   </div>
@@ -46,29 +43,48 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'], layout: 'admin' })
 
-const authStore = useAuthStore()
-const apiBase = useRuntimeConfig().public.apiBase
-const counts = ref({ total: 0, customers: 0, couriers: 0, admins: 0 })
-
-async function fetchCounts() {
-  const token = authStore.token || localStorage.getItem('token')
-  if (!token) {
-    return navigateTo('/auth/login')
-  }
-  
-  try {
-    const data = await $fetch(`${apiBase}/users/count`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    counts.value = data
-  } catch (e) {
-    console.error('Error fetching counts:', e)
-    if (e.statusCode === 401) {
-      await authStore.logout()
-      navigateTo('/auth/login')
-    }
-  }
+const STATUS_BARS: Record<string, string> = {
+  PENDING: 'bg-amber-400',
+  CONFIRMED: 'bg-blue-500',
+  ASSIGNED: 'bg-indigo-500',
+  IN_PROGRESS: 'bg-cyan-500',
+  COMPLETED: 'bg-emerald-500',
+  CANCELLED: 'bg-rose-400',
 }
 
-onMounted(fetchCounts)
+const authStore = useAuthStore()
+const ordersStore = useOrdersStore()
+const apiBase = useRuntimeConfig().public.apiBase
+const counts = ref({ total: 0, customers: 0, couriers: 0, admins: 0 })
+const stats = ref<{ by_status: Record<string, number> } | null>(null)
+
+onMounted(async () => {
+  const token = authStore.token || localStorage.getItem('token')
+  if (!token) return navigateTo('/auth/login')
+  try {
+    counts.value = (await $fetch(`${apiBase}/users/count`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })) as typeof counts.value
+  } catch {}
+  stats.value = await ordersStore.fetchStats()
+})
+
+const statusRows = computed(() => {
+  const byStatus = stats.value?.by_status || {}
+  const total = Object.values(byStatus).reduce((a, b) => a + b, 0) || 1
+  return Object.keys(ORDER_STATUS_META).map((status) => ({
+    status,
+    label: ORDER_STATUS_META[status].label,
+    count: byStatus[status] || 0,
+    percent: Math.round(((byStatus[status] || 0) / total) * 100),
+    bar: STATUS_BARS[status] || 'bg-gray-300',
+  }))
+})
+
+const actions = [
+  { icon: '👥', label: 'Пользователи', to: '/admin/users' },
+  { icon: '🔑', label: 'Роли', to: '/admin/roles' },
+  { icon: '📋', label: 'Заказы', to: '/admin/orders' },
+  { icon: '🛒', label: 'Товары', to: '/admin/products' },
+]
 </script>

@@ -1,45 +1,57 @@
 ﻿<template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-800">Управление заказами</h1>
-    <div class="bg-white rounded shadow overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Сумма</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Курьер</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Назначить</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr v-for="order in orders" :key="order.id">
-            <td class="px-6 py-4">#{{ order.id }}</td>
-            <td class="px-6 py-4">{{ order.customer_name || `#${order.customer_id}` }}</td>
-            <td class="px-6 py-4">
-              <span :class="statusClass(order.status)" class="px-2 py-1 rounded text-sm">{{ statusLabel(order.status) }}</span>
-            </td>
-            <td class="px-6 py-4">{{ formatMoney(order.total_amount) }} ₽</td>
-            <td class="px-6 py-4 text-sm text-gray-500">{{ order.courier_name || '—' }}</td>
-            <td class="px-6 py-4">
-              <select
-                :value="order.courier_id || ''"
-                :disabled="['COMPLETED', 'CANCELLED'].includes(order.status)"
-                @change="onAssign(order.id, $event)"
-                class="border rounded px-2 py-1 text-xs"
-              >
-                <option value="">— не назначен —</option>
-                <option v-for="courier in couriers" :key="courier.id" :value="courier.id">
-                  {{ courier.full_name || courier.email }}
-                </option>
-              </select>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-if="!isLoading && orders.length === 0" class="p-8 text-center text-gray-500">Заказов пока нет</div>
-      <div v-if="isLoading" class="p-8 text-center text-gray-500">Загрузка...</div>
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Управление заказами</h1>
+        <p class="text-gray-500 text-sm mt-1">Все заказы платформы</p>
+      </div>
+      <select v-model="statusFilter" @change="load" class="input !w-auto">
+        <option value="">Все статусы</option>
+        <option v-for="(meta, status) in ORDER_STATUS_META" :key="status" :value="status">{{ meta.label }}</option>
+      </select>
+    </div>
+
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table-base">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Клиент</th>
+              <th>Статус</th>
+              <th>Сумма</th>
+              <th>Курьер</th>
+              <th>Назначить</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in orders" :key="order.id">
+              <td class="font-semibold text-gray-800">#{{ order.id }}</td>
+              <td class="text-gray-600">{{ order.customer_name || `#${order.customer_id}` }}</td>
+              <td><UiStatusBadge :status="order.status" /></td>
+              <td class="font-medium">{{ formatMoney(order.total_amount) }} ₽</td>
+              <td class="text-gray-500">{{ order.courier_name || '—' }}</td>
+              <td>
+                <select
+                  :value="order.courier_id || ''"
+                  :disabled="['COMPLETED', 'CANCELLED'].includes(order.status)"
+                  @change="onAssign(order.id, $event)"
+                  class="input !w-44 !py-1.5 !text-xs"
+                >
+                  <option value="">— не назначен —</option>
+                  <option v-for="courier in couriers" :key="courier.id" :value="courier.id">
+                    {{ courier.full_name || courier.email }}
+                  </option>
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <UiSpinner v-if="isLoading" label="Загрузка…" />
+      <div v-else-if="orders.length === 0">
+        <UiEmptyState icon="📦" title="Заказов нет" description="По выбранному фильтру ничего не найдено" />
+      </div>
     </div>
   </div>
 </template>
@@ -67,6 +79,7 @@ const authStore = useAuthStore()
 const apiBase = useRuntimeConfig().public.apiBase
 const orders = ref<Order[]>([])
 const couriers = ref<UserRow[]>([])
+const statusFilter = ref('')
 const isLoading = ref(true)
 
 onMounted(load)
@@ -74,7 +87,8 @@ onMounted(load)
 async function load() {
   isLoading.value = true
   try {
-    orders.value = (await $fetch(`${apiBase}/orders/?limit=100`, {
+    const q = statusFilter.value ? `&status_filter=${statusFilter.value}` : ''
+    orders.value = (await $fetch(`${apiBase}/orders/?limit=100${q}`, {
       headers: { Authorization: `Bearer ${authStore.token}` },
     })) as Order[]
     couriers.value = (await $fetch(`${apiBase}/users/?role=COURIER&limit=100`, {
@@ -101,33 +115,5 @@ async function onAssign(orderId: number, event: Event) {
     alert(e?.data?.detail || e?.message || 'Ошибка назначения курьера')
     await load()
   }
-}
-
-function statusClass(status: string) {
-  const map: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-blue-100 text-blue-800',
-    ASSIGNED: 'bg-indigo-100 text-indigo-800',
-    IN_PROGRESS: 'bg-cyan-100 text-cyan-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
-  }
-  return map[status] || 'bg-gray-100 text-gray-800'
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    PENDING: 'Ожидает',
-    CONFIRMED: 'Подтверждён',
-    ASSIGNED: 'Назначен',
-    IN_PROGRESS: 'В пути',
-    COMPLETED: 'Доставлен',
-    CANCELLED: 'Отменён',
-  }
-  return labels[status] || status
-}
-
-function formatMoney(value: number | string) {
-  return Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
 }
 </script>

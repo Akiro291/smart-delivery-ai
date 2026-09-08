@@ -1,40 +1,48 @@
 ﻿<template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-800">Курьеры</h1>
-      <div class="bg-white p-6 rounded shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Курьеры</h1>
+      <p class="text-gray-500 text-sm mt-1">Список курьеров платформы (админ)</p>
+    </div>
+
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table-base">
+          <thead>
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+              <th>Курьер</th>
+              <th>Email</th>
+              <th>Телефон</th>
+              <th>Статус</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in couriers" :key="user.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.full_name || '-' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.phone || '-' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="user.is_active ? 'text-green-600' : 'text-red-600'">
+          <tbody>
+            <tr v-for="user in couriers" :key="user.id">
+              <td class="font-medium text-gray-800">{{ user.full_name || 'Без имени' }}</td>
+              <td class="text-gray-500">{{ user.email }}</td>
+              <td class="text-gray-500">{{ user.phone || '—' }}</td>
+              <td>
+                <span :class="user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'" class="badge">
+                  <span class="h-1.5 w-1.5 rounded-full bg-current" />
                   {{ user.is_active ? 'Активен' : 'Неактивен' }}
                 </span>
               </td>
             </tr>
           </tbody>
         </table>
-        <div v-if="couriers.length === 0" class="p-6 text-center text-gray-500">
-          Курьеров пока нет
-        </div>
       </div>
+      <UiSpinner v-if="isLoading" label="Загрузка…" />
+      <div v-else-if="couriers.length === 0">
+        <UiEmptyState icon="🚚" title="Курьеров нет" description="Заявки на роль курьера одобряются в разделе «Роли»" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'], layout: 'admin' })
 
-interface User {
+interface UserRow {
   id: number
   email: string
   full_name: string | null
@@ -44,17 +52,18 @@ interface User {
 
 const authStore = useAuthStore()
 const apiBase = useRuntimeConfig().public.apiBase
-const couriers = ref<User[]>([])
+const couriers = ref<UserRow[]>([])
+const isLoading = ref(true)
 
-async function fetchCouriers() {
+onMounted(async () => {
   try {
-    couriers.value = await $fetch(`${apiBase}/users/?role=COURIER&limit=100`, {
+    couriers.value = (await $fetch(`${apiBase}/users/?role=COURIER&limit=100`, {
       headers: { Authorization: `Bearer ${authStore.token}` },
-    })
-  } catch (e) {
-    console.error('Error fetching couriers:', e)
+    })) as UserRow[]
+  } catch {
+    couriers.value = []
+  } finally {
+    isLoading.value = false
   }
-}
-
-onMounted(fetchCouriers)
+})
 </script>

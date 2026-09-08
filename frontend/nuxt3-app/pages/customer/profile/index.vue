@@ -1,31 +1,38 @@
 ﻿<template>
-    <div class="space-y-6">
-      <h1 class="text-2xl font-bold text-gray-800">Мой профиль</h1>
-      <div class="bg-white p-6 rounded shadow max-w-lg">
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Email</label>
-            <p class="mt-1 text-gray-900">{{ authStore.user?.email || '-' }}</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Имя</label>
-            <input v-model="fullName" type="text" class="mt-1 w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Телефон</label>
-            <input v-model="phone" type="text" class="mt-1 w-full border rounded px-3 py-2" />
-          </div>
-          <button
-            @click="save"
-            :disabled="isSaving"
-            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
-          >
-            {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
-          </button>
-          <p v-if="saved" class="text-green-600 text-sm">Профиль обновлён</p>
+  <div class="space-y-6 max-w-lg">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Мой профиль</h1>
+      <p class="text-gray-500 text-sm mt-1">Личные данные аккаунта</p>
+    </div>
+
+    <div class="card overflow-hidden">
+      <div class="bg-gradient-to-r from-brand-600 to-brand-800 px-6 py-8 text-white flex items-center gap-4">
+        <div class="h-16 w-16 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-2xl font-bold border border-white/20">
+          {{ initial }}
+        </div>
+        <div>
+          <p class="font-bold text-lg">{{ authStore.user?.full_name || 'Без имени' }}</p>
+          <p class="text-white/60 text-sm">{{ authStore.user?.email }}</p>
         </div>
       </div>
+      <div class="p-6 space-y-5">
+        <div>
+          <label class="label">Email</label>
+          <input type="email" :value="authStore.user?.email || ''" disabled class="input bg-gray-50" />
+        </div>
+        <div>
+          <label class="label">Имя</label>
+          <input v-model="fullName" type="text" class="input" />
+        </div>
+        <div>
+          <label class="label">Телефон</label>
+          <input v-model="phone" type="tel" class="input" />
+        </div>
+        <UiAlert v-if="saved" text="Профиль обновлён" tone="success" />
+        <UiButton :loading="isSaving" @click="save">Сохранить изменения</UiButton>
+      </div>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -37,6 +44,8 @@ const fullName = ref(authStore.user?.full_name || '')
 const phone = ref(authStore.user?.phone || '')
 const isSaving = ref(false)
 const saved = ref(false)
+
+const initial = computed(() => (authStore.user?.full_name || authStore.user?.email || 'U')[0]?.toUpperCase())
 
 onMounted(async () => {
   await authStore.fetchUser()
@@ -56,6 +65,7 @@ async function save() {
     })
     await authStore.fetchUser()
     saved.value = true
+    setTimeout(() => (saved.value = false), 3000)
   } catch (e: any) {
     alert(e?.data?.detail || e?.message || 'Ошибка сохранения')
   } finally {

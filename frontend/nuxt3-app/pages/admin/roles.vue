@@ -1,8 +1,11 @@
 <template>
   <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800">Управление ролями</h1>
-      <select v-model="statusFilter" @change="load" class="border rounded px-3 py-2 text-sm">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Управление ролями</h1>
+        <p class="text-gray-500 text-sm mt-1">Заявки пользователей на смену роли</p>
+      </div>
+      <select v-model="statusFilter" @change="load" class="input !w-auto">
         <option value="">Все заявки</option>
         <option value="PENDING">Ожидают</option>
         <option value="APPROVED">Одобрены</option>
@@ -10,56 +13,46 @@
       </select>
     </div>
 
-    <div class="bg-white rounded shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Пользователь</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Желаемая роль</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Причина</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="req in requests" :key="req.id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 text-sm">
-              <div>{{ req.user_full_name || 'Без имени' }}</div>
-              <div class="text-gray-500">{{ req.user_email }}</div>
-            </td>
-            <td class="px-6 py-4">
-              <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                {{ roleLabel(req.requested_role) }}
-              </span>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-500">{{ req.reason || '—' }}</td>
-            <td class="px-6 py-4">
-              <span
-                :class="{
-                  'bg-yellow-100 text-yellow-800': req.status === 'PENDING',
-                  'bg-green-100 text-green-800': req.status === 'APPROVED',
-                  'bg-red-100 text-red-800': req.status === 'REJECTED',
-                }"
-                class="px-2 py-1 rounded-full text-xs font-medium"
-              >
-                {{ statusLabel(req.status) }}
-              </span>
-            </td>
-            <td class="px-6 py-4 text-sm space-x-2">
-              <template v-if="req.status === 'PENDING'">
-                <button @click="review(req.id, 'approve')" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
-                  Одобрить
-                </button>
-                <button @click="review(req.id, 'reject')" class="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">
-                  Отклонить
-                </button>
-              </template>
-              <span v-else class="text-gray-400 text-xs">Обработана</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-if="requests.length === 0" class="p-8 text-center text-gray-500">Заявок нет</div>
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table-base">
+          <thead>
+            <tr>
+              <th>Пользователь</th>
+              <th>Желаемая роль</th>
+              <th>Причина</th>
+              <th>Статус</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="req in requests" :key="req.id">
+              <td>
+                <div class="font-medium text-gray-800">{{ req.user_full_name || 'Без имени' }}</div>
+                <div class="text-xs text-gray-400">{{ req.user_email }}</div>
+              </td>
+              <td>
+                <span class="badge bg-brand-50 text-brand-700 border border-brand-100">{{ roleLabel(req.requested_role) }}</span>
+              </td>
+              <td class="text-gray-500 max-w-56"><span class="line-clamp-2">{{ req.reason || '—' }}</span></td>
+              <td>
+                <span :class="requestBadgeClass(req.status)" class="badge">{{ requestLabel(req.status) }}</span>
+              </td>
+              <td>
+                <div v-if="req.status === 'PENDING'" class="flex gap-2">
+                  <button @click="review(req.id, 'approve')" class="btn-primary !px-3 !py-1.5 !text-xs">Одобрить</button>
+                  <button @click="review(req.id, 'reject')" class="btn-secondary !px-3 !py-1.5 !text-xs !text-red-600 hover:!bg-red-50">Отклонить</button>
+                </div>
+                <span v-else class="text-xs text-gray-300">Обработана</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <UiSpinner v-if="isLoading" label="Загрузка…" />
+      <div v-else-if="requests.length === 0">
+        <UiEmptyState icon="🔑" title="Заявок нет" description="Новые заявки на смену роли появятся здесь" />
+      </div>
     </div>
   </div>
 </template>
@@ -81,10 +74,12 @@ const authStore = useAuthStore()
 const apiBase = useRuntimeConfig().public.apiBase
 const requests = ref<RoleRequest[]>([])
 const statusFilter = ref('')
+const isLoading = ref(true)
 
 onMounted(load)
 
 async function load() {
+  isLoading.value = true
   try {
     const query = statusFilter.value ? `?status_filter=${statusFilter.value}` : ''
     requests.value = (await $fetch(`${apiBase}/users/role-requests${query}`, {
@@ -92,6 +87,8 @@ async function load() {
     })) as RoleRequest[]
   } catch {
     requests.value = []
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -117,12 +114,17 @@ function roleLabel(role: string) {
   return labels[role] || role
 }
 
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    PENDING: 'Ожидает',
-    APPROVED: 'Одобрена',
-    REJECTED: 'Отклонена',
-  }
+function requestLabel(status: string) {
+  const labels: Record<string, string> = { PENDING: 'Ожидает', APPROVED: 'Одобрена', REJECTED: 'Отклонена' }
   return labels[status] || status
+}
+
+function requestBadgeClass(status: string) {
+  const classes: Record<string, string> = {
+    PENDING: 'bg-amber-100 text-amber-800',
+    APPROVED: 'bg-emerald-100 text-emerald-800',
+    REJECTED: 'bg-red-100 text-red-800',
+  }
+  return classes[status] || 'bg-gray-100 text-gray-700'
 }
 </script>

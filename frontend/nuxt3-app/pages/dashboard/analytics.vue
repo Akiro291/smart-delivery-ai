@@ -1,44 +1,39 @@
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-800">Аналитика</h1>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500 mb-2">Выручка (доставленные)</h3>
-        <p class="text-3xl font-bold text-green-600">{{ formatMoney(stats?.completed_revenue) }} ₽</p>
-      </div>
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500 mb-2">Всего заказов</h3>
-        <p class="text-3xl font-bold">{{ stats?.total || 0 }}</p>
-      </div>
-      <div class="bg-white p-6 rounded shadow">
-        <h3 class="text-sm text-gray-500 mb-2">Активных заказов</h3>
-        <p class="text-3xl font-bold text-blue-600">{{ stats?.active || 0 }}</p>
-      </div>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Аналитика</h1>
+      <p class="text-gray-500 text-sm mt-1">Динамика и распределение заказов</p>
     </div>
 
-    <div class="bg-white p-6 rounded shadow">
-      <h3 class="text-lg font-semibold mb-4">Заказы по статусам</h3>
-      <div class="space-y-3">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <UiStat label="Выручка (доставленные)" :value="formatMoney(stats?.completed_revenue) + ' ₽'" icon="💰" tone="emerald" />
+      <UiStat label="Всего заказов" :value="stats?.total || 0" icon="📦" tone="indigo" />
+      <UiStat label="Активных заказов" :value="stats?.active || 0" icon="🚚" tone="amber" />
+    </div>
+
+    <div class="card p-6">
+      <h3 class="font-semibold text-gray-800 mb-5">Заказы по статусам</h3>
+      <div class="space-y-4">
         <div v-for="item in statusRows" :key="item.status" class="flex items-center gap-4">
-          <span class="w-32 text-sm text-gray-600">{{ item.label }}</span>
-          <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-            <div class="h-4 bg-blue-500 rounded-full" :style="{ width: item.percent + '%' }" />
+          <span class="w-28 text-xs text-gray-500 flex-shrink-0">{{ item.label }}</span>
+          <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-700" :class="item.bar" :style="{ width: item.percent + '%' }" />
           </div>
-          <span class="w-10 text-right text-sm font-medium">{{ item.count }}</span>
+          <span class="w-10 text-right text-sm font-bold text-gray-700">{{ item.count }}</span>
         </div>
       </div>
     </div>
 
-    <div class="bg-white p-6 rounded shadow">
-      <h3 class="text-lg font-semibold mb-4">Заказы по дням (последние 14)</h3>
-      <div class="flex items-end gap-2 h-48">
-        <div v-for="(day, i) in chartData" :key="i" class="flex-1 flex flex-col items-center gap-1">
+    <div class="card p-6">
+      <h3 class="font-semibold text-gray-800 mb-6">Заказы по дням (последние 14)</h3>
+      <div class="flex items-end gap-1.5 h-48">
+        <div v-for="(day, i) in chartData" :key="i" class="flex-1 flex flex-col items-center gap-2 group">
           <div
             :style="{ height: chartBarHeight(day.count) }"
-            class="w-full bg-blue-500 rounded-t hover:bg-blue-600 transition-colors"
+            class="w-full max-w-8 bg-gradient-to-t from-brand-600 to-brand-400 rounded-t-md group-hover:from-brand-700 group-hover:to-brand-500 transition-colors"
             :title="`${day.count} заказов`"
           />
-          <span class="text-xs text-gray-500">{{ day.label }}</span>
+          <span class="text-[10px] text-gray-400">{{ day.label }}</span>
         </div>
       </div>
     </div>
@@ -54,18 +49,19 @@ interface Order {
   created_at: string | null
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Ожидает',
-  CONFIRMED: 'Подтверждён',
-  ASSIGNED: 'Назначен',
-  IN_PROGRESS: 'В пути',
-  COMPLETED: 'Доставлен',
-  CANCELLED: 'Отменён',
+const STATUS_BARS: Record<string, string> = {
+  PENDING: 'bg-amber-400',
+  CONFIRMED: 'bg-blue-500',
+  ASSIGNED: 'bg-indigo-500',
+  IN_PROGRESS: 'bg-cyan-500',
+  COMPLETED: 'bg-emerald-500',
+  CANCELLED: 'bg-rose-400',
 }
 
 const ordersStore = useOrdersStore()
 const stats = ref<{ total: number; by_status: Record<string, number>; completed_revenue: number; active: number } | null>(null)
 const orders = ref<Order[]>([])
+const isLoading = ref(true)
 
 onMounted(async () => {
   const [statsData, ordersData] = await Promise.all([
@@ -74,16 +70,18 @@ onMounted(async () => {
   ])
   stats.value = statsData
   orders.value = (ordersData as unknown as Order[]) || []
+  isLoading.value = false
 })
 
 const statusRows = computed(() => {
   const byStatus = stats.value?.by_status || {}
   const total = Object.values(byStatus).reduce((a, b) => a + b, 0) || 1
-  return Object.keys(STATUS_LABELS).map((status) => ({
+  return Object.keys(ORDER_STATUS_META).map((status) => ({
     status,
-    label: STATUS_LABELS[status],
+    label: ORDER_STATUS_META[status].label,
     count: byStatus[status] || 0,
     percent: Math.round(((byStatus[status] || 0) / total) * 100),
+    bar: STATUS_BARS[status] || 'bg-gray-300',
   }))
 })
 
@@ -92,8 +90,7 @@ const chartData = computed(() => {
   for (let i = 13; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    const key = d.toISOString().slice(0, 10)
-    days.set(key, 0)
+    days.set(d.toISOString().slice(0, 10), 0)
   }
   for (const order of orders.value) {
     if (!order.created_at) continue
@@ -109,10 +106,6 @@ const chartData = computed(() => {
 const maxCount = computed(() => Math.max(1, ...chartData.value.map((d) => d.count)))
 
 function chartBarHeight(count: number) {
-  return count === 0 ? '4px' : Math.max(8, Math.round((count / maxCount.value) * 160)) + 'px'
-}
-
-function formatMoney(value: number | undefined) {
-  return Number(value || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+  return count === 0 ? '6px' : Math.max(10, Math.round((count / maxCount.value) * 150)) + 'px'
 }
 </script>
